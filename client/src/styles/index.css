@@ -2181,6 +2181,10 @@ textarea:focus {
   margin-bottom: 16px;
 }
 
+.admin-section-count {
+  color: #0A7C56;
+}
+
 /* ==========================================================================
    RESPONSIVE
    Desktop/laptop: fixed sidebar, two-column editor.
