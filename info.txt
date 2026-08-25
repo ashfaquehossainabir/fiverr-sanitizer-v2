@@ -1,0 +1,27 @@
+1
+Push the project to GitHub
+Create a new GitHub repo and push the fiverr-sanitizer-fullstack folder (with client/ and server/ as subfolders) to it. Both Vercel and Render deploy by connecting to a GitHub repo, so this needs to happen first. Make sure node_modules and .env are in .gitignore.
+
+2
+Set up MongoDB Atlas
+If you don't already have a hosted MongoDB, create a free cluster at mongodb.com/atlas, create a database user, and allow network access from anywhere (0.0.0.0/0) since Render's IPs aren't static. Copy the connection string — you'll need it as MONGO_URI.
+
+3
+Deploy the backend on Render
+On render.com, click New → Web Service, connect your repo, and set Root Directory to server. Build Command: npm install. Start Command: npm start (or node index.js, check your server/package.json). Then add environment variables: MONGO_URI (from Atlas), JWT_SECRET (a long random string), JWT_EXPIRES_IN=7d, and CLIENT_ORIGIN (leave a placeholder for now, e.g. http://localhost:5173 — you'll update it after deploying the frontend). Deploy, then copy the live URL Render gives you, like https://fiverr-sanitizer-api.onrender.com.
+
+4
+Deploy the frontend on Vercel
+On vercel.com, click Add New → Project, import the same repo, and set Root Directory to client. Vercel auto-detects Vite (Build Command: npm run build, Output Directory: dist). Before deploying, add the environment variable VITE_API_URL set to your Render URL plus /api, e.g. https://fiverr-sanitizer-api.onrender.com/api. Deploy, then copy the live Vercel URL, like https://fiverr-sanitizer.vercel.app.
+
+5
+Point the backend back at the frontend
+Go back to your Render service → Environment, and update CLIENT_ORIGIN to your actual Vercel URL (no trailing slash), e.g. https://fiverr-sanitizer.vercel.app. Save — Render will automatically redeploy with the new value. This is what makes CORS allow requests from your live frontend.
+
+6
+Test login and register
+Open your Vercel URL, try registering and logging in, and check the browser console (F12) for errors. If you see CORS errors, double-check CLIENT_ORIGIN on Render matches the Vercel URL exactly. If you see 404/405 like before, double-check VITE_API_URL on Vercel and that you redeployed after setting it — env var changes only apply on a new build.
+
+7
+(Optional) Add a custom domain or keep Render awake
+Render's free tier spins down after inactivity, so the first request after idle can take 30-50 seconds to respond — that's normal, not a bug. A paid Render instance or a periodic uptime ping (e.g. UptimeRobot) avoids this if it matters for your use case
