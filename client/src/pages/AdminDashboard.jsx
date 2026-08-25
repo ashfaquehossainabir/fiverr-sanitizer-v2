@@ -277,7 +277,7 @@ export default function AdminDashboard() {
             {filteredPendingUsers.length > 0 && (
               <section className="admin-pending-section">
                 <h2 className="admin-section-title">
-                  Pending Approvals
+                  Pending Approvals {" "}
                   <span className="admin-section-count">{filteredPendingUsers.length}</span>
                 </h2>
 
