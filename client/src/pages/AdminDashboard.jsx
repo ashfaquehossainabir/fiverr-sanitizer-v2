@@ -49,6 +49,41 @@ export default function AdminDashboard() {
   const [notice, setNotice] = useState(""); // "new registration" alert banner
   const knownPendingIds = useRef(null); // null until first load, then a Set of ids we've already surfaced
 
+  const [settings, setSettings] = useState(null); // { pendingApprovalEnabled }
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [togglingSetting, setTogglingSetting] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const { data } = await api.get("/admin/settings");
+      setSettings(data.settings);
+    } catch (err) {
+      setBanner({ type: "error", text: err.response?.data?.message || "Could not load settings." });
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  const handleTogglePendingApproval = async () => {
+    if (!settings || togglingSetting) return;
+    const nextValue = !settings.pendingApprovalEnabled;
+    setTogglingSetting(true);
+    try {
+      const { data } = await api.patch("/admin/settings", { pendingApprovalEnabled: nextValue });
+      setSettings(data.settings);
+      setBanner({
+        type: "success",
+        text: data.settings.pendingApprovalEnabled
+          ? "Pending approval is now ON — new sign-ups will need admin approval before they can log in."
+          : "Pending approval is now OFF — new sign-ups are auto-approved and go straight to the dashboard."
+      });
+    } catch (err) {
+      setBanner({ type: "error", text: err.response?.data?.message || "Could not update this setting." });
+    } finally {
+      setTogglingSetting(false);
+    }
+  };
+
   const loadUsers = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     try {
@@ -90,6 +125,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadUsers();
+    loadSettings();
 
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
@@ -99,7 +135,7 @@ export default function AdminDashboard() {
     // manual refresh — this is what makes the approval queue feel "live".
     const interval = setInterval(() => loadUsers(true), POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [loadUsers]);
+  }, [loadUsers, loadSettings]);
 
   const matchesSearch = useCallback(
     (u) => {
@@ -256,6 +292,36 @@ export default function AdminDashboard() {
             <span className="admin-stat-value">{stats.admins}</span>
             <span className="admin-stat-label">Admins</span>
           </div>
+        </div>
+
+        <div className="admin-setting-card">
+          <div className="admin-setting-info">
+            <h3>Pending Approval for Sign-Ups</h3>
+            <p>
+              {settingsLoading
+                ? "Loading current setting..."
+                : settings?.pendingApprovalEnabled
+                ? "New registrations wait in the queue above until an admin approves them."
+                : "New registrations are auto-approved and sent straight to the dashboard — the approval queue is skipped."}
+            </p>
+          </div>
+
+          <label
+            className={`toggle-switch ${settingsLoading || togglingSetting ? "is-disabled" : ""}`}
+            title={
+              settings?.pendingApprovalEnabled
+                ? "Turn off to let new sign-ups skip approval"
+                : "Turn on to require admin approval for new sign-ups"
+            }
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(settings?.pendingApprovalEnabled)}
+              disabled={settingsLoading || togglingSetting}
+              onChange={handleTogglePendingApproval}
+            />
+            <span className="toggle-slider" />
+          </label>
         </div>
 
         <div className="admin-toolbar">

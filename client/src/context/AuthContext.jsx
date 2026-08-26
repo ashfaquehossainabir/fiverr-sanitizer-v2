@@ -38,10 +38,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   const register = useCallback(async (name, email, password) => {
-    // Registration no longer logs the user in — new accounts are created
-    // pending admin approval, so we just hand back the server's response
-    // (message + safe user object) for the Register page to display.
     const { data } = await api.post("/auth/register", { name, email, password });
+
+    // If the admin has turned OFF "pending approval" registration, the
+    // server auto-approves the account and hands back a token right away —
+    // log the user in immediately, same as a normal login, so they land
+    // straight on the dashboard.
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token);
+      setUser(data.user);
+    }
+
+    // Otherwise (pending approval is ON), there's no token — the Register
+    // page just displays the server's "pending approval" message.
     return data;
   }, []);
 

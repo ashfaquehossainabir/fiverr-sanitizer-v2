@@ -2,12 +2,44 @@ import express from "express";
 import User from "../models/User.js";
 import Tab from "../models/Tab.js";
 import Message from "../models/Message.js";
+import Settings from "../models/Settings.js";
 import { protect, adminOnly } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // Every route below requires a logged-in, active admin.
 router.use(protect, adminOnly);
+
+/* GET /api/admin/settings - read app-wide toggles (e.g. pending approval) */
+router.get("/settings", async (req, res, next) => {
+  try {
+    const settings = await Settings.getSettings();
+    res.json({ settings: { pendingApprovalEnabled: settings.pendingApprovalEnabled } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* PATCH /api/admin/settings - flip the pending-approval registration toggle.
+   ON: new sign-ups go into the approval queue as before.
+   OFF: new sign-ups are auto-approved and logged straight into the dashboard. */
+router.patch("/settings", async (req, res, next) => {
+  try {
+    const { pendingApprovalEnabled } = req.body;
+
+    if (typeof pendingApprovalEnabled !== "boolean") {
+      return res.status(400).json({ message: "pendingApprovalEnabled must be true or false." });
+    }
+
+    const settings = await Settings.getSettings();
+    settings.pendingApprovalEnabled = pendingApprovalEnabled;
+    await settings.save();
+
+    res.json({ settings: { pendingApprovalEnabled: settings.pendingApprovalEnabled } });
+  } catch (err) {
+    next(err);
+  }
+});
 
 /* GET /api/admin/users - list every user (excluding password hashes) */
 router.get("/users", async (req, res, next) => {

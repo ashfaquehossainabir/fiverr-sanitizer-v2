@@ -1,5 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
+import Settings from "../models/Settings.js";
 import generateToken from "../utils/generateToken.js";
 import { protect } from "../middleware/auth.js";
 
@@ -23,11 +24,35 @@ router.post("/register", async (req, res, next) => {
       return res.status(409).json({ message: "An account with that email already exists." });
     }
 
-    // Accounts are created unapproved (see User model default) and are
-    // NOT logged in automatically. A notification is raised for admins
+    // Whether the "pending approval" flow is even in effect is controlled
+    // by the admin from the Admin Dashboard (Settings toggle).
+    const settings = await Settings.getSettings();
+    const pendingApprovalEnabled = settings.pendingApprovalEnabled;
+
+    // When the toggle is ON (default): accounts are created unapproved and
+    // are NOT logged in automatically. A notification is raised for admins
     // (surfaced on the Admin Dashboard) and the account stays locked out
     // of login until an admin approves it there.
-    const user = await User.create({ name: name.trim(), email, password });
+    //
+    // When the toggle is OFF: the approval queue is skipped entirely — the
+    // account is created already approved, and we log them in immediately
+    // (same as a normal login) so the client can redirect straight to the
+    // dashboard.
+    const user = await User.create({
+      name: name.trim(),
+      email,
+      password,
+      isApproved: !pendingApprovalEnabled
+    });
+
+    if (!pendingApprovalEnabled) {
+      const token = generateToken(user._id);
+      return res.status(201).json({
+        message: "Your account has been created.",
+        token,
+        user: user.toSafeObject()
+      });
+    }
 
     res.status(201).json({
       message: "Your account has been created and is pending admin approval. You'll be able to log in once it's approved.",

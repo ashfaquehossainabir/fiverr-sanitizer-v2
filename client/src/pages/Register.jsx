@@ -36,6 +36,13 @@ export default function Register() {
     setSubmitting(true);
     try {
       const data = await register(form.name, form.email, form.password);
+
+      // If pending approval is OFF, the account is already logged in at
+      // this point (AuthContext stored the token) — the surrounding
+      // PublicOnlyRoute will redirect straight to /dashboard on its own,
+      // so there's nothing else to do here.
+      if (data.token) return;
+
       setPending(
         data.message ||
           "Your account has been created and is pending admin approval. You'll be able to log in once it's approved."
