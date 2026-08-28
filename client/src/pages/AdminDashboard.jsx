@@ -25,6 +25,42 @@ function formatDate(dateStr) {
   });
 }
 
+// Small inline icon set for the stat cards — kept dependency-free.
+const STAT_ICONS = {
+  pending: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  ),
+  total: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 5 18.5V20" />
+      <circle cx="9.5" cy="8" r="3.25" />
+      <path d="M19 20v-1.5a3.3 3.3 0 0 0-2.2-3.12" />
+      <path d="M15 4.13a3.25 3.25 0 0 1 0 6.24" />
+    </svg>
+  ),
+  active: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.5l2.5 2.5L16 9.5" />
+    </svg>
+  ),
+  deactivated: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5l5 5M14.5 9.5l-5 5" />
+    </svg>
+  ),
+  admins: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5l6.5 2.6v5.1c0 4.3-2.75 7.6-6.5 8.8-3.75-1.2-6.5-4.5-6.5-8.8V6.1L12 3.5z" />
+      <path d="M9.5 12l1.8 1.8 3.2-3.6" />
+    </svg>
+  )
+};
+
 export default function AdminDashboard() {
   const { user: currentUser, logout } = useAuth();
 
@@ -240,18 +276,27 @@ export default function AdminDashboard() {
       <header className="admin-topbar">
         <div className="admin-topbar-brand">
           <span className="sidebar-logo">FS</span>
-          <div>
+          <div className="admin-topbar-heading">
             <h1>Admin Dashboard</h1>
             <p>Manage every registered user</p>
           </div>
         </div>
 
         <div className="admin-topbar-actions">
-          <Link to="/dashboard" className="admin-back-link">
-            ← Back to Workspace
+          <Link to="/dashboard" className="admin-back-link" aria-label="Back to Workspace">
+            <svg className="admin-topbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5" />
+              <path d="M11 6l-6 6 6 6" />
+            </svg>
+            <span className="admin-topbar-action-text">Back to Workspace</span>
           </Link>
-          <button type="button" className="logout-btn admin-logout-btn" onClick={logout}>
-            Log Out
+          <button type="button" className="logout-btn admin-logout-btn" onClick={logout} aria-label="Log Out">
+            <svg className="admin-topbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
+              <path d="M16 17l5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span className="admin-topbar-action-text">Log Out</span>
           </button>
         </div>
       </header>
@@ -272,25 +317,44 @@ export default function AdminDashboard() {
         )}
 
         <div className="admin-stats">
-          <div className={`admin-stat-card ${stats.pending > 0 ? "is-pending" : ""}`}>
-            <span className="admin-stat-value">{stats.pending}</span>
-            <span className="admin-stat-label">Pending Approval</span>
+          <div
+            className={`admin-stat-card ${stats.pending > 0 ? "is-pending" : ""}`}
+            data-stat="pending"
+            tabIndex={0}
+          >
+            <span className="admin-stat-icon">{STAT_ICONS.pending}</span>
+            <span className="admin-stat-body">
+              <span className="admin-stat-value">{stats.pending}</span>
+              <span className="admin-stat-label">Pending Approval</span>
+            </span>
           </div>
-          <div className="admin-stat-card">
-            <span className="admin-stat-value">{stats.total}</span>
-            <span className="admin-stat-label">Total Users</span>
+          <div className="admin-stat-card" data-stat="total" tabIndex={0}>
+            <span className="admin-stat-icon">{STAT_ICONS.total}</span>
+            <span className="admin-stat-body">
+              <span className="admin-stat-value">{stats.total}</span>
+              <span className="admin-stat-label">Total Users</span>
+            </span>
           </div>
-          <div className="admin-stat-card">
-            <span className="admin-stat-value">{stats.active}</span>
-            <span className="admin-stat-label">Active</span>
+          <div className="admin-stat-card" data-stat="active" tabIndex={0}>
+            <span className="admin-stat-icon">{STAT_ICONS.active}</span>
+            <span className="admin-stat-body">
+              <span className="admin-stat-value">{stats.active}</span>
+              <span className="admin-stat-label">Active</span>
+            </span>
           </div>
-          <div className="admin-stat-card">
-            <span className="admin-stat-value">{stats.deactivated}</span>
-            <span className="admin-stat-label">Deactivated</span>
+          <div className="admin-stat-card" data-stat="deactivated" tabIndex={0}>
+            <span className="admin-stat-icon">{STAT_ICONS.deactivated}</span>
+            <span className="admin-stat-body">
+              <span className="admin-stat-value">{stats.deactivated}</span>
+              <span className="admin-stat-label">Deactivated</span>
+            </span>
           </div>
-          <div className="admin-stat-card">
-            <span className="admin-stat-value">{stats.admins}</span>
-            <span className="admin-stat-label">Admins</span>
+          <div className="admin-stat-card" data-stat="admins" tabIndex={0}>
+            <span className="admin-stat-icon">{STAT_ICONS.admins}</span>
+            <span className="admin-stat-body">
+              <span className="admin-stat-value">{stats.admins}</span>
+              <span className="admin-stat-label">Admins</span>
+            </span>
           </div>
         </div>
 
