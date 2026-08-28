@@ -89,6 +89,8 @@ export default function AdminDashboard() {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [togglingSetting, setTogglingSetting] = useState(false);
 
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+
   const loadSettings = useCallback(async () => {
     try {
       const { data } = await api.get("/admin/settings");
@@ -290,7 +292,12 @@ export default function AdminDashboard() {
             </svg>
             <span className="admin-topbar-action-text">Back to Workspace</span>
           </Link>
-          <button type="button" className="logout-btn admin-logout-btn" onClick={logout} aria-label="Log Out">
+          <button
+            type="button"
+            className="logout-btn admin-logout-btn"
+            onClick={() => setLogoutConfirmOpen(true)}
+            aria-label="Log Out"
+          >
             <svg className="admin-topbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
               <path d="M16 17l5-5-5-5" />
@@ -563,6 +570,17 @@ export default function AdminDashboard() {
           loading={rejecting}
           onConfirm={confirmReject}
           onCancel={() => setRejectTarget(null)}
+        />
+      )}
+
+      {logoutConfirmOpen && (
+        <ConfirmModal
+          title="Log out of the admin dashboard?"
+          message="You'll need to sign in again to manage users."
+          confirmLabel="Log Out"
+          variant="danger"
+          onConfirm={logout}
+          onCancel={() => setLogoutConfirmOpen(false)}
         />
       )}
     </div>
