@@ -57,8 +57,16 @@ const URL_REGEX = /\bhttps?:\/\/[^\s]+/gi;
 /* ===============================
    HELPERS
 ================================ */
-function sanitizeWord(word) {
+function sanitizeWord(word, keyword) {
   if (!word || word.length < 2) return word;
+
+  const lowerKeyword = (keyword || "").toLowerCase();
+  if (lowerKeyword === "mail" || lowerKeyword === "email") {
+    if (word.length < 3) return word;
+    if (word[2] === "-") return word;
+    return `${word.slice(0, 2)}-${word.slice(2)}`;
+  }
+
   if (word[1] === "_") return word;
   return `${word[0]}_${word.slice(1)}`;
 }
@@ -120,7 +128,7 @@ export function sanitizeText(text) {
   RESERVED_KEYWORDS.forEach((keyword) => {
     const regex = new RegExp(`\\b${keyword}\\b`, "gi");
     sanitized = sanitized.replace(regex, (match) =>
-      sanitizeWord(match)
+      sanitizeWord(match, keyword)
     );
   });
 

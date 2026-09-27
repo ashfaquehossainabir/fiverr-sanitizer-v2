@@ -161,6 +161,11 @@ export default function Editor({ onSaveMessage, saving }) {
       `<span class="highlight">$1</span>`
     );
 
+    highlightedText = highlightedText.replace(
+      /\b((?:m|M)(?:a|A)-(?:i|I)(?:l|L)|(?:e|E)(?:m|M)-(?:a|A)(?:i|I)(?:l|L))\b/g,
+      `<span class="highlight">$1</span>`
+    );
+
     return highlightedText;
   };
 
