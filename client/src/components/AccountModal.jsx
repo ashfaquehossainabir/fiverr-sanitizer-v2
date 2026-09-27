@@ -11,6 +11,7 @@ function getInitials(name) {
 
 export default function AccountModal({ onClose }) {
   const { user, updateProfile, updatePassword, deleteAccount, logout } = useAuth();
+  const hasPassword = Boolean(user?.hasPassword);
 
   const [profileForm, setProfileForm] = useState({ name: user?.name || "", email: user?.email || "" });
   const [profileMsg, setProfileMsg] = useState({ type: "", text: "" });
@@ -26,6 +27,8 @@ export default function AccountModal({ onClose }) {
   const [deleting, setDeleting] = useState(false);
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
@@ -54,8 +57,12 @@ export default function AccountModal({ onClose }) {
     e.preventDefault();
     setPasswordMsg({ type: "", text: "" });
 
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      setPasswordMsg({ type: "error", text: "Fill in both password fields." });
+    if (hasPassword && !passwordForm.currentPassword) {
+      setPasswordMsg({ type: "error", text: "Enter your current password." });
+      return;
+    }
+    if (!passwordForm.newPassword) {
+      setPasswordMsg({ type: "error", text: "Enter a new password." });
       return;
     }
     if (passwordForm.newPassword.length < 6) {
@@ -69,11 +76,11 @@ export default function AccountModal({ onClose }) {
 
     setPasswordSaving(true);
     try {
-      await updatePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      });
-      setPasswordMsg({ type: "success", text: "Password updated successfully." });
+      const payload = { newPassword: passwordForm.newPassword };
+      if (hasPassword) payload.currentPassword = passwordForm.currentPassword;
+
+      const data = await updatePassword(payload);
+      setPasswordMsg({ type: "success", text: data.message || "Password updated successfully." });
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {
       setPasswordMsg({ type: "error", text: err.response?.data?.message || "Could not update your password." });
@@ -83,17 +90,17 @@ export default function AccountModal({ onClose }) {
   };
 
   const handleDeleteAccount = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setDeleteMsg("");
 
-    if (!deletePassword) {
+    if (hasPassword && !deletePassword) {
       setDeleteMsg("Enter your password to confirm.");
       return;
     }
 
     setDeleting(true);
     try {
-      await deleteAccount(deletePassword);
+      await deleteAccount(hasPassword ? deletePassword : undefined);
       onClose();
     } catch (err) {
       setDeleteMsg(err.response?.data?.message || "Could not delete your account.");
@@ -102,8 +109,23 @@ export default function AccountModal({ onClose }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal account-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className={`modal-backdrop${isExpanded ? " modal-backdrop-expanded" : ""}`}
+      onClick={onClose}
+    >
+      <div
+        className={`modal account-modal${isExpanded ? " account-modal-expanded" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className="modal-expand-btn"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          aria-label={isExpanded ? "Collapse modal" : "Expand modal"}
+          title={isExpanded ? "Collapse" : "Expand"}
+        >
+          {isExpanded ? "⤡" : "⤢"}
+        </button>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Close settings">
           ✕
         </button>
@@ -148,17 +170,25 @@ export default function AccountModal({ onClose }) {
           </section>
 
           <section className="settings-section">
-            <h3>Change Password</h3>
+            <h3>{hasPassword ? "Change Password" : "Set Password"}</h3>
+            {!hasPassword && (
+              <p className="settings-hint">
+                Your account was created with Google and doesn't have a password yet. Set one below to also be able
+                to log in with your email and password.
+              </p>
+            )}
             <form onSubmit={handlePasswordSubmit} className="settings-form">
-              <label>
-                Current Password
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))}
-                />
-              </label>
+              {hasPassword && (
+                <label>
+                  Current Password
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))}
+                  />
+                </label>
+              )}
               <label>
                 New Password
                 <input
@@ -183,7 +213,13 @@ export default function AccountModal({ onClose }) {
               )}
 
               <button type="submit" className="settings-save-btn" disabled={passwordSaving}>
-                {passwordSaving ? "Updating..." : "Update Password"}
+                {passwordSaving
+                  ? hasPassword
+                    ? "Updating..."
+                    : "Setting..."
+                  : hasPassword
+                    ? "Update Password"
+                    : "Set Password"}
               </button>
             </form>
           </section>
@@ -202,15 +238,18 @@ export default function AccountModal({ onClose }) {
             ) : (
               <form onSubmit={handleDeleteAccount} className="settings-form">
                 <p className="danger-warning">
-                  This permanently deletes your account, tabs, and saved messages. Enter your password to confirm.
+                  {hasPassword
+                    ? "This permanently deletes your account, tabs, and saved messages. Enter your password to confirm."
+                    : "This permanently deletes your account, tabs, and saved messages. This can't be undone."}
                 </p>
-                <input
-                  type="password"
-                  placeholder="Your password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                />
-
+                {hasPassword && (
+                  <input
+                    type="password"
+                    placeholder="Your password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                  />
+                )}
                 {deleteMsg && <p className="settings-msg error">{deleteMsg}</p>}
 
                 <div className="danger-actions">
@@ -232,7 +271,9 @@ export default function AccountModal({ onClose }) {
               </form>
             )}
           </section>
+        </div>
 
+        <div className="account-modal-footer">
           <button type="button" className="logout-btn" onClick={() => setShowLogoutConfirm(true)}>
             Log Out
           </button>

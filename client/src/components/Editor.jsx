@@ -36,10 +36,10 @@ export default function Editor({ onSaveMessage, saving }) {
     ? sanitizeText(normalizedInput)
     : { text: "", emailRemoved: false };
 
-  const hasRealCharacter = /[a-zA-Z0-9]/.test(input);
-  const charCount = hasRealCharacter ? input.length : 0;
+  const hasRealCharacter = /[a-zA-Z0-9]/.test(sanitized);
+  const charCount = hasRealCharacter ? sanitized.length : 0;
   const wordCount = hasRealCharacter
-    ? input.trim().split(/\s+/).filter(Boolean).length
+    ? sanitized.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const isLimitExceeded = charCount > CHAR_LIMIT;
 

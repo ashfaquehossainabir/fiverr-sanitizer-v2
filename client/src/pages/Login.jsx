@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, googleAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [pending, setPending] = useState(null); // set if Google sign-in creates a brand-new pending account
 
   const from = location.state?.from?.pathname || "/dashboard";
 
@@ -34,6 +37,24 @@ export default function Login() {
       setError(err.response?.data?.message || "Unable to log in. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    setError("");
+    setGoogleSubmitting(true);
+    try {
+      const data = await googleAuth(credential);
+      if (data.token) {
+        navigate(from, { replace: true });
+        return;
+      }
+      // First-time Google sign-in while admin approval is required.
+      setPending(data.message || "Your account has been created and is pending admin approval.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to sign in with Google. Please try again.");
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -88,41 +109,62 @@ export default function Login() {
             <p>Log in to keep sanitizing and organizing your Fiverr messages.</p>
           </div>
 
-          {error && <div className="auth-error">{error}</div>}
+          {pending ? (
+            <>
+              <div className="auth-success">{pending}</div>
+              <p className="auth-switch">
+                Already approved? <button type="button" className="auth-link-btn" onClick={() => setPending(null)}>Try logging in</button>
+              </p>
+            </>
+          ) : (
+            <>
+              {error && <div className="auth-error">{error}</div>}
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <label>
-              Email
-              <input
-                type="email"
-                name="email"
-                autoComplete="email"
-                placeholder="Enter your email address"
-                value={form.email}
-                onChange={handleChange}
+              <GoogleAuthButton
+                text="signin_with"
+                disabled={submitting || googleSubmitting}
+                onCredential={handleGoogleCredential}
               />
-            </label>
 
-            <label>
-              Password
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                placeholder="Enter your password"
-                value={form.password}
-                onChange={handleChange}
-              />
-            </label>
+              <div className="auth-divider">
+                <span>or continue with email</span>
+              </div>
 
-            <button type="submit" className="auth-submit" disabled={submitting}>
-              {submitting ? "Logging in..." : "Log In"}
-            </button>
-          </form>
+              <form className="auth-form" onSubmit={handleSubmit}>
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    placeholder="Enter your email address"
+                    value={form.email}
+                    onChange={handleChange}
+                  />
+                </label>
 
-          <p className="auth-switch">
-            Don&apos;t have an account? <Link to="/register">Create one</Link>
-          </p>
+                <label>
+                  Password
+                  <input
+                    type="password"
+                    name="password"
+                    autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={form.password}
+                    onChange={handleChange}
+                  />
+                </label>
+
+                <button type="submit" className="auth-submit" disabled={submitting || googleSubmitting}>
+                  {submitting ? "Logging in..." : "Log In"}
+                </button>
+              </form>
+
+              <p className="auth-switch">
+                Don&apos;t have an account? <Link to="/register">Create one</Link>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

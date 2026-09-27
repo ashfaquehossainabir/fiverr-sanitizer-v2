@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import GoogleAuthButton from "../components/GoogleAuthButton.jsx";
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, googleAuth } = useAuth();
 
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [pending, setPending] = useState(null); // set to the server message once submitted
 
   const handleChange = (e) => {
@@ -51,6 +53,27 @@ export default function Register() {
       setError(err.response?.data?.message || "Unable to create your account. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    setError("");
+    setGoogleSubmitting(true);
+    try {
+      const data = await googleAuth(credential);
+
+      // Signed in (or already had an approved account) — PublicOnlyRoute
+      // will redirect to /dashboard on its own once the context updates.
+      if (data.token) return;
+
+      setPending(
+        data.message ||
+          "Your account has been created and is pending admin approval. You'll be able to log in once it's approved."
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to sign up with Google. Please try again.");
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -122,6 +145,16 @@ export default function Register() {
 
               {error && <div className="auth-error">{error}</div>}
 
+              <GoogleAuthButton
+                text="signup_with"
+                disabled={submitting || googleSubmitting}
+                onCredential={handleGoogleCredential}
+              />
+
+              <div className="auth-divider">
+                <span>or sign up with email</span>
+              </div>
+
               <form className="auth-form" onSubmit={handleSubmit}>
                 <label>
                   Full Name
@@ -171,7 +204,7 @@ export default function Register() {
                   />
                 </label>
 
-                <button type="submit" className="auth-submit" disabled={submitting}>
+                <button type="submit" className="auth-submit" disabled={submitting || googleSubmitting}>
                   {submitting ? "Creating account..." : "Create Account"}
                 </button>
               </form>

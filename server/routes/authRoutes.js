@@ -1,10 +1,13 @@
 import express from "express";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import Settings from "../models/Settings.js";
 import generateToken from "../utils/generateToken.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
+
+const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
 
 /* POST /api/auth/register */
 router.post("/register", async (req, res, next) => {
@@ -90,6 +93,102 @@ router.post("/login", async (req, res, next) => {
 
     const token = generateToken(user._id);
     res.json({ token, user: user.toSafeObject() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* POST /api/auth/google
+   Sign in (or register, on first use) with a Google account. The client
+   sends the ID token credential produced by Google Identity Services; we
+   verify it with Google, then find-or-create the matching user.
+
+   - If a local account already exists with the same, verified email, the
+     Google account is linked to it (so the person can use either method).
+   - Brand-new sign-ups go through the same admin-approval setting as a
+     normal registration (Settings.pendingApprovalEnabled).
+*/
+router.post("/google", async (req, res, next) => {
+  try {
+    if (!googleClient) {
+      return res.status(500).json({ message: "Google sign-in isn't configured on the server yet." });
+    }
+
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ message: "Missing Google credential." });
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ message: "Could not verify your Google sign-in. Please try again." });
+    }
+
+    if (!payload?.email) {
+      return res.status(400).json({ message: "Your Google account has no email on file." });
+    }
+
+    if (!payload.email_verified) {
+      return res.status(400).json({ message: "Your Google account's email address isn't verified." });
+    }
+
+    const email = payload.email.toLowerCase().trim();
+
+    let user = await User.findOne({ googleId: payload.sub }).select("+password");
+    let justCreated = false;
+
+    if (!user) {
+      // No Google-linked account yet — if a local account already uses
+      // this (verified) email, link Google to it instead of duplicating.
+      user = await User.findOne({ email }).select("+password");
+      if (user && !user.googleId) {
+        user.googleId = payload.sub;
+        await user.save();
+      }
+    }
+
+    if (!user) {
+      const settings = await Settings.getSettings();
+      const pendingApprovalEnabled = settings.pendingApprovalEnabled;
+
+      user = await User.create({
+        name: payload.name || email.split("@")[0],
+        email,
+        googleId: payload.sub,
+        authProvider: "google",
+        isApproved: !pendingApprovalEnabled
+      });
+      justCreated = true;
+    }
+
+    if (!user.isApproved) {
+      if (justCreated) {
+        return res.status(201).json({
+          message: "Your account has been created and is pending admin approval. You'll be able to log in once it's approved.",
+          user: user.toSafeObject()
+        });
+      }
+      return res.status(403).json({
+        message: "Your account is still pending admin approval. You'll be able to log in once an admin approves it."
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ message: "This account has been deactivated. Contact an administrator." });
+    }
+
+    const token = generateToken(user._id);
+    res.status(justCreated ? 201 : 200).json({
+      message: justCreated ? "Your account has been created." : undefined,
+      token,
+      user: user.toSafeObject()
+    });
   } catch (err) {
     next(err);
   }

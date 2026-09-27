@@ -55,6 +55,22 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  // Sign in (or, on first use, register) with a Google ID token credential
+  // from Google Identity Services. Mirrors register()'s "token vs pending"
+  // response shape, since a brand-new Google sign-up goes through the same
+  // admin-approval flow as a normal registration.
+  const googleAuth = useCallback(async (credential) => {
+    const { data } = await api.post("/auth/google", { credential });
+
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+      setToken(data.token);
+      setUser(data.user);
+    }
+
+    return data;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -69,6 +85,7 @@ export function AuthProvider({ children }) {
 
   const updatePassword = useCallback(async (payload) => {
     const { data } = await api.put("/users/password", payload);
+    if (data.user) setUser(data.user);
     return data;
   }, []);
 
@@ -88,6 +105,7 @@ export function AuthProvider({ children }) {
     isAdmin: user?.role === "admin",
     login,
     register,
+    googleAuth,
     logout,
     updateProfile,
     updatePassword,

@@ -20,9 +20,28 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required."],
+      required: [
+        function isPasswordRequired() {
+          return this.authProvider !== "google";
+        },
+        "Password is required."
+      ],
       minlength: 6,
       select: false
+    },
+    // How this account authenticates. "google" accounts don't have a
+    // password until an admin sets one (or the user adds one later).
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local"
+    },
+    // Google's stable per-account identifier ("sub" claim). Only set for
+    // accounts created via, or linked to, Google Sign-In.
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true
     },
     role: {
       type: String,
@@ -51,6 +70,7 @@ userSchema.pre("save", async function hashPassword(next) {
 });
 
 userSchema.methods.comparePassword = function comparePassword(candidate) {
+  if (!this.password) return Promise.resolve(false);
   return bcrypt.compare(candidate, this.password);
 };
 
@@ -62,6 +82,8 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     role: this.role,
     isActive: this.isActive,
     isApproved: this.isApproved,
+    authProvider: this.authProvider,
+    hasPassword: Boolean(this.password),
     createdAt: this.createdAt
   };
 };

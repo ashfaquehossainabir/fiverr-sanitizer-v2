@@ -543,6 +543,51 @@ a {
   gap: 16px;
 }
 
+.google-auth-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.google-auth-button.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-faint);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.auth-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  cursor: pointer;
+}
+
+.auth-link-btn:hover {
+  text-decoration: underline;
+}
+
 .auth-form label {
   display: flex;
   flex-direction: column;
@@ -916,7 +961,7 @@ a {
   border: none;
   font-size: 12px;
   font-weight: 600;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-new-tab-actions button[type="submit"] {
@@ -936,6 +981,7 @@ a {
 
 .sidebar-new-tab-actions button[type="button"]:hover {
   background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .sidebar-tabs {
@@ -1105,7 +1151,7 @@ a {
   inset: 0;
   background: rgba(16, 36, 29, 0.5);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 40px 16px;
   overflow-y: auto;
@@ -1125,6 +1171,51 @@ a {
 
 .modal.account-modal {
   max-width: 480px;
+  width: 100%;
+  height: auto;
+  min-height: 480px;
+  max-height: min(640px, calc(100vh - 80px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: height 0.2s ease, max-height 0.2s ease, min-height 0.2s ease, border-radius 0.2s ease;
+}
+
+.modal-backdrop.modal-backdrop-expanded {
+  padding: 28px 16px;
+  align-items: center;
+  transition: padding 0.2s ease;
+}
+
+.modal.account-modal.account-modal-expanded {
+  width: 100%;
+  height: calc(100vh - 56px);
+  height: calc(100dvh - 56px);
+  min-height: 0;
+  max-height: calc(100vh - 56px);
+  max-height: calc(100dvh - 56px);
+  border-radius: var(--radius-lg);
+}
+
+.modal-expand-btn {
+  position: absolute;
+  top: 18px;
+  right: 60px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface-alt);
+  color: var(--color-ink-soft);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.modal-expand-btn:hover {
+  background: var(--color-border);
 }
 
 .modal-close {
@@ -1149,7 +1240,8 @@ a {
   align-items: center;
   gap: 14px;
   margin-bottom: 24px;
-  padding-right: 30px;
+  padding-right: 96px;
+  flex-shrink: 0;
 }
 
 .account-avatar-lg {
@@ -1182,6 +1274,17 @@ a {
   display: flex;
   flex-direction: column;
   gap: 26px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+
+.account-modal-footer {
+  flex-shrink: 0;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
 }
 
 .settings-section h3 {
@@ -1190,6 +1293,13 @@ a {
   letter-spacing: 0.04em;
   color: var(--color-ink-faint);
   margin-bottom: 14px;
+}
+
+.settings-hint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  margin-bottom: 12px;
 }
 
 .settings-form {
@@ -1303,7 +1413,7 @@ a {
   color: var(--color-ink-soft);
   font-size: 13px;
   font-weight: 600;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .cancel-btn:hover:not(:disabled) {
@@ -1321,7 +1431,6 @@ a {
   color: var(--color-ink);
   font-size: 13.5px;
   font-weight: 600;
-  margin-top: 4px;
 }
 
 .logout-btn:hover {
@@ -2485,6 +2594,11 @@ textarea:focus {
   .admin-user-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
+
+  .modal.account-modal {
+    max-width: 440px;
+    max-height: min(640px, calc(100vh - 60px));
+  }
 }
 
 /* Tablets (portrait) */
@@ -2563,6 +2677,23 @@ textarea:focus {
   .admin-user-grid {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
+
+  .modal-backdrop {
+    padding: 30px 14px;
+  }
+
+  .modal.account-modal {
+    max-width: 92vw;
+    padding: 28px 24px 24px;
+    min-height: 0;
+    max-height: calc(100vh - 60px);
+  }
+
+  .account-avatar-lg {
+    width: 50px;
+    height: 50px;
+    font-size: 16px;
+  }
 }
 
 /* Mobile phones */
@@ -2595,14 +2726,55 @@ textarea:focus {
     text-align: center;
   }
 
+  .modal-backdrop {
+    padding: 20px 10px;
+    align-items: center;
+  }
+
   .account-modal-header {
     flex-direction: column;
     align-items: flex-start;
     padding-right: 0;
+    gap: 10px;
   }
 
   .modal.account-modal {
-    padding: 26px 18px 22px;
+    max-width: 100%;
+    padding: 24px 16px 20px;
+    min-height: 0;
+    height: auto;
+    max-height: calc(100vh - 32px);
+    border-radius: var(--radius-md);
+  }
+
+  .account-modal-body {
+    padding-right: 0;
+    gap: 20px;
+  }
+
+  .account-modal-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .account-avatar-lg {
+    width: 46px;
+    height: 46px;
+    font-size: 15px;
+  }
+
+  .account-modal-header h2 {
+    font-size: 16px;
+  }
+
+  .settings-save-btn,
+  .delete-account-btn {
+    align-self: stretch;
+    text-align: center;
+  }
+
+  .logout-btn {
+    padding: 11px;
   }
 
   .danger-actions {
@@ -2768,6 +2940,80 @@ textarea:focus {
   .admin-stat-card {
     flex-direction: row;
     align-items: center;
+  }
+
+  .modal.account-modal {
+    padding: 20px 14px 18px;
+    height: auto;
+    max-height: calc(100vh - 24px);
+  }
+
+  .modal-close {
+    width: 28px;
+    height: 28px;
+    top: 14px;
+    right: 14px;
+    font-size: 12px;
+  }
+
+  .modal-expand-btn {
+    width: 28px;
+    height: 28px;
+    top: 14px;
+    right: 50px;
+    font-size: 12px;
+  }
+
+  .account-avatar-lg {
+    width: 42px;
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .account-modal-header h2 {
+    font-size: 15px;
+  }
+
+  .account-modal-header p {
+    font-size: 12px;
+  }
+
+  .account-modal-body {
+    gap: 18px;
+  }
+
+  .settings-form input {
+    padding: 9px 10px;
+    font-size: 13px;
+  }
+
+  .settings-save-btn,
+  .delete-account-btn,
+  .cancel-btn {
+    padding: 10px 14px;
+    font-size: 12.5px;
+  }
+}
+
+/* Short viewports (landscape phones, small laptop windows) */
+@media (max-height: 640px) {
+  .modal-backdrop {
+    padding: 16px;
+    align-items: center;
+  }
+
+  .modal.account-modal {
+    min-height: 0;
+    height: auto;
+    max-height: calc(100vh - 32px);
+  }
+
+  .account-modal-header {
+    margin-bottom: 14px;
+  }
+
+  .account-modal-body {
+    gap: 16px;
   }
 }
 

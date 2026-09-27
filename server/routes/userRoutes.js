@@ -44,13 +44,17 @@ router.put("/profile", async (req, res, next) => {
   }
 });
 
-/* PUT /api/users/password - change password */
+/* PUT /api/users/password - set or change password
+   Accounts with no password yet (e.g. Google sign-ups that never set one)
+   can set their first password with just newPassword - no currentPassword
+   required, since there's nothing to verify against. Once a password
+   exists, changing it always requires the current one. */
 router.put("/password", async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: "Current and new password are required." });
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required." });
     }
 
     if (newPassword.length < 6) {
@@ -58,35 +62,50 @@ router.put("/password", async (req, res, next) => {
     }
 
     const userWithPassword = await User.findById(req.user._id).select("+password");
-    const isMatch = await userWithPassword.comparePassword(currentPassword);
+    const isSettingFirstPassword = !userWithPassword.password;
 
-    if (!isMatch) {
-      return res.status(401).json({ message: "Current password is incorrect." });
+    if (!isSettingFirstPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required." });
+      }
+      const isMatch = await userWithPassword.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Current password is incorrect." });
+      }
     }
 
     userWithPassword.password = newPassword;
     await userWithPassword.save();
 
-    res.json({ message: "Password updated successfully." });
+    res.json({
+      message: isSettingFirstPassword
+        ? "Password set. You can now log in with your email and password too."
+        : "Password updated successfully.",
+      user: userWithPassword.toSafeObject()
+    });
   } catch (err) {
     next(err);
   }
 });
 
-/* DELETE /api/users/account - delete account + all owned data */
+/* DELETE /api/users/account - delete account + all owned data
+   Accounts with no password (Google-only, never set one) can't confirm
+   with a password - the caller must already hold a valid JWT to reach
+   this route at all, which stands in as the confirmation for them. */
 router.delete("/account", async (req, res, next) => {
   try {
     const { password } = req.body;
 
-    if (!password) {
-      return res.status(400).json({ message: "Enter your password to confirm account deletion." });
-    }
-
     const userWithPassword = await User.findById(req.user._id).select("+password");
-    const isMatch = await userWithPassword.comparePassword(password);
 
-    if (!isMatch) {
-      return res.status(401).json({ message: "Password is incorrect." });
+    if (userWithPassword.password) {
+      if (!password) {
+        return res.status(400).json({ message: "Enter your password to confirm account deletion." });
+      }
+      const isMatch = await userWithPassword.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Password is incorrect." });
+      }
     }
 
     const tabIds = await Tab.find({ user: req.user._id }).distinct("_id");
