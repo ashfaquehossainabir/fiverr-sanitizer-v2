@@ -29,6 +29,9 @@
   --color-info-soft: #E7EEFE;
   --color-border: #DEE6E2;
   --color-border-strong: #C7D4CE;
+  --overlay-bg: rgba(16, 36, 29, 0.5);
+  --overlay-bg-strong: rgba(16, 36, 29, 0.55);
+  --overlay-bg-soft: rgba(16, 36, 29, 0.45);
 
   /* Type */
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
@@ -1231,7 +1234,7 @@ a {
   box-sizing: border-box;
   height: 100vh;
   height: 100dvh; /* visible viewport on mobile/tablet (excludes browser bars) */
-  background: rgba(16, 36, 29, 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1533,7 +1536,7 @@ a {
   box-sizing: border-box;
   height: 100vh;
   height: 100dvh; /* visible viewport on mobile/tablet (excludes browser bars) */
-  background: rgba(16, 36, 29, 0.55);
+  background: var(--overlay-bg-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1640,7 +1643,7 @@ a {
 .view-message-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(16, 36, 29, 0.5);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2673,7 +2676,7 @@ textarea:focus {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(16, 36, 29, 0.45);
+    background: var(--overlay-bg-soft);
     z-index: 30;
   }
 
@@ -3893,6 +3896,10 @@ textarea:focus {
   --color-info-soft: #1A2342;
   --color-border: #2A2A2F;
   --color-border-strong: #3B3B42;
+  /* neutral black scrim — no green cast on modal overlays */
+  --overlay-bg: rgba(0, 0, 0, 0.65);
+  --overlay-bg-strong: rgba(0, 0, 0, 0.7);
+  --overlay-bg-soft: rgba(0, 0, 0, 0.6);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.65);
@@ -3909,6 +3916,16 @@ textarea:focus {
 :root[data-theme="dark"] .avatar-circle,
 :root[data-theme="dark"] .account-avatar-lg {
   background: var(--color-deep);
+}
+
+/* auth logo in dark mode: green "FS" mark, white "Fiverr Sanitizer" text */
+:root[data-theme="dark"] .auth-logo {
+  color: var(--color-accent-dark);
+}
+
+:root[data-theme="dark"] .auth-wordmark-text,
+:root[data-theme="dark"] .auth-panel-mobile-brand span:last-child {
+  color: #fff;
 }
 
 :root[data-theme="dark"] .sidebar {
