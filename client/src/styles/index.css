@@ -545,9 +545,87 @@ a {
 }
 
 .google-auth-button {
+  position: relative;
+  display: block;
+  height: 44px; /* fixed, so re-rendering the Google iframe can never shift the layout */
+  min-height: 44px;
+  /* no overflow clipping here: it cut off the button's edges/focus state */
+  -webkit-tap-highlight-color: transparent;
+  /* The Google button iframe is always "light" scheme; matching it here keeps
+     the browser from painting an opaque white box behind it in dark mode. */
+  color-scheme: light;
+}
+
+/* Loading placeholder: holds the button's exact footprint (so nothing shifts)
+   and shimmers until Google's iframe is ready, then fades away. */
+.google-auth-button::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  bottom: 2px;
+  width: min(100%, 400px);
+  transform: translateX(-50%);
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  background:
+    linear-gradient(100deg, transparent 20%, rgba(127, 127, 127, 0.16) 50%, transparent 80%)
+      0 0 / 220% 100% no-repeat,
+    var(--color-surface-alt);
+  animation: google-btn-shimmer 1.3s ease-in-out infinite;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.google-auth-button[data-loaded="true"]::before {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes google-btn-shimmer {
+  from { background-position: 150% 0, 0 0; }
+  to   { background-position: -50% 0, 0 0; }
+}
+
+.google-auth-button,
+.google-auth-button:focus,
+.google-auth-button:focus-within,
+.google-auth-button-layer,
+.google-auth-button-layer:focus,
+.google-auth-button-layer:focus-within,
+.google-auth-button iframe,
+.google-auth-button iframe:focus,
+.google-auth-button iframe:focus-visible,
+.google-auth-button div[role="button"]:focus,
+.google-auth-button div[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+
+.google-auth-button-layer {
+  position: absolute;
+  inset: 0;
   display: flex;
   justify-content: center;
-  min-height: 44px;
+  align-items: center;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+/* new button: invisible until its iframe has loaded, then eases in */
+.google-auth-button-layer.is-pending {
+  opacity: 0;
+  transform: translateY(4px) scale(0.985);
+  pointer-events: none;
+}
+
+/* old button: eases out while the new one eases in */
+.google-auth-button-layer.is-leaving {
+  opacity: 0;
+  transform: scale(0.99);
+  pointer-events: none;
 }
 
 .google-auth-button.is-disabled {
@@ -1150,12 +1228,18 @@ a {
 .modal-backdrop {
   position: fixed;
   inset: 0;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh; /* visible viewport on mobile/tablet (excludes browser bars) */
   background: rgba(16, 36, 29, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px 16px;
+  padding-top: max(40px, env(safe-area-inset-top));
+  padding-bottom: max(40px, env(safe-area-inset-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 100;
 }
 
@@ -1174,8 +1258,8 @@ a {
   max-width: 480px;
   width: 100%;
   height: auto;
-  min-height: 480px;
-  max-height: min(640px, calc(100vh - 80px));
+  min-height: min(480px, 100%);
+  max-height: min(640px, 100%); /* 100% = backdrop content box (viewport minus padding) */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1184,17 +1268,17 @@ a {
 
 .modal-backdrop.modal-backdrop-expanded {
   padding: 28px 16px;
+  padding-top: max(28px, env(safe-area-inset-top));
+  padding-bottom: max(28px, env(safe-area-inset-bottom));
   align-items: center;
   transition: padding 0.2s ease;
 }
 
 .modal.account-modal.account-modal-expanded {
   width: 100%;
-  height: calc(100vh - 56px);
-  height: calc(100dvh - 56px);
+  height: 100%;
   min-height: 0;
-  max-height: calc(100vh - 56px);
-  max-height: calc(100dvh - 56px);
+  max-height: 100%;
   border-radius: var(--radius-lg);
 }
 
@@ -1446,11 +1530,18 @@ a {
 .confirm-backdrop {
   position: fixed;
   inset: 0;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh; /* visible viewport on mobile/tablet (excludes browser bars) */
   background: rgba(16, 36, 29, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 200;
 }
 
@@ -2547,7 +2638,7 @@ textarea:focus {
 
   .modal.account-modal {
     max-width: 440px;
-    max-height: min(640px, calc(100vh - 60px));
+    max-height: min(640px, 100%);
   }
 }
 
@@ -2629,14 +2720,16 @@ textarea:focus {
   }
 
   .modal-backdrop {
-    padding: 30px 14px;
+    padding: 24px 14px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
   }
 
   .modal.account-modal {
     max-width: 92vw;
     padding: 28px 24px 24px;
     min-height: 0;
-    max-height: calc(100vh - 60px);
+    max-height: 100%;
   }
 
   .account-avatar-lg {
@@ -2677,7 +2770,9 @@ textarea:focus {
   }
 
   .modal-backdrop {
-    padding: 20px 10px;
+    padding: 14px 10px;
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
     align-items: center;
   }
 
@@ -2693,7 +2788,7 @@ textarea:focus {
     padding: 24px 16px 20px;
     min-height: 0;
     height: auto;
-    max-height: calc(100vh - 32px);
+    max-height: 100%;
     border-radius: var(--radius-md);
   }
 
@@ -2895,7 +2990,7 @@ textarea:focus {
   .modal.account-modal {
     padding: 20px 14px 18px;
     height: auto;
-    max-height: calc(100vh - 24px);
+    max-height: 100%;
   }
 
   .modal-close {
@@ -2948,14 +3043,16 @@ textarea:focus {
 /* Short viewports (landscape phones, small laptop windows) */
 @media (max-height: 640px) {
   .modal-backdrop {
-    padding: 16px;
+    padding: 12px 16px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
     align-items: center;
   }
 
   .modal.account-modal {
     min-height: 0;
     height: auto;
-    max-height: calc(100vh - 32px);
+    max-height: 100%;
   }
 
   .account-modal-header {
@@ -3402,11 +3499,27 @@ textarea:focus {
 /* ---------- Form modals (templates, clients) ---------- */
 .modal.form-modal {
   max-width: 520px;
-  max-height: calc(100vh - 32px);
+  max-height: 100%; /* 100% = backdrop content box (visible viewport minus padding) */
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.modal.form-modal > * {
+  flex-shrink: 0; /* scroll instead of squashing fields when space is tight */
+}
+
+.form-two > label {
+  min-width: 0; /* stop date/number inputs from overflowing the grid column */
+}
+
+.form-modal input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-modal h3 {
@@ -3456,6 +3569,64 @@ textarea:focus {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 4px;
+}
+
+/* Form modals (add/edit client, templates): tablet + mobile */
+@media (max-width: 760px) {
+  .modal.form-modal {
+    max-width: min(520px, 100%);
+    padding: 26px 22px 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .modal.form-modal {
+    padding: 22px 16px 16px;
+    gap: 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .form-modal h3 {
+    font-size: 17px;
+  }
+
+  /* 16px prevents iOS Safari from zooming (and shifting the layout) on focus */
+  .form-modal input,
+  .form-modal textarea,
+  .form-modal select {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  /* keep Save / Cancel reachable while the fields scroll */
+  .form-modal .form-actions {
+    position: sticky;
+    bottom: -16px;
+    margin: 4px -16px -16px;
+    padding: 12px 16px 16px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    z-index: 1;
+  }
+
+  .form-modal .form-actions button {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* Short viewports (landscape phones / tablets) */
+@media (max-height: 520px) {
+  .confirm-backdrop {
+    padding: 8px 16px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .modal.form-modal {
+    padding-top: 18px;
+    gap: 10px;
+  }
 }
 
 /* ---------- Overview ---------- */
