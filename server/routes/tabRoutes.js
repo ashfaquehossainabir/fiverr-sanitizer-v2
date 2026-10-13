@@ -1,6 +1,7 @@
 import express from "express";
 import Tab from "../models/Tab.js";
 import Message from "../models/Message.js";
+import Client from "../models/Client.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -19,6 +20,19 @@ async function assertOwnedTab(tabId, userId) {
     throw err;
   }
   return tab;
+}
+
+// Returns a valid client id owned by this user, null for "no client",
+// or throws a 400/404 so a user can never link a message to someone else's client.
+async function resolveClientId(clientId, userId) {
+  if (!clientId) return null;
+  const owned = await Client.findOne({ _id: clientId, user: userId }).select("_id");
+  if (!owned) {
+    const err = new Error("That client was not found.");
+    err.status = 404;
+    throw err;
+  }
+  return owned._id;
 }
 
 /* GET /api/tabs - list all tabs for the logged-in user */
@@ -88,7 +102,7 @@ router.get("/:id/messages", async (req, res, next) => {
   try {
     await assertOwnedTab(req.params.id, req.user._id);
 
-    const messages = await Message.find({ tab: req.params.id }).sort({ createdAt: -1 });
+    const messages = await Message.find({ tab: req.params.id }).sort({ pinned: -1, createdAt: -1 });
     res.json({ messages });
   } catch (err) {
     next(err);
@@ -100,19 +114,43 @@ router.post("/:id/messages", async (req, res, next) => {
   try {
     await assertOwnedTab(req.params.id, req.user._id);
 
-    const { sanitizedText, originalText } = req.body;
+    const { sanitizedText, originalText, client } = req.body;
     if (!sanitizedText || !sanitizedText.trim()) {
       return res.status(400).json({ message: "There is no sanitized text to save." });
     }
+    const clientId = await resolveClientId(client, req.user._id);
 
     const message = await Message.create({
       user: req.user._id,
       tab: req.params.id,
       originalText: originalText || "",
-      sanitizedText
+      sanitizedText,
+      client: clientId
     });
 
     res.status(201).json({ message });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* PUT /api/tabs/:id/messages/:messageId - pin/unpin or link to a client */
+router.put("/:id/messages/:messageId", async (req, res, next) => {
+  try {
+    await assertOwnedTab(req.params.id, req.user._id);
+
+    const message = await Message.findOne({ _id: req.params.messageId, tab: req.params.id });
+    if (!message) {
+      return res.status(404).json({ message: "Saved message not found." });
+    }
+
+    if (req.body.pinned !== undefined) message.pinned = Boolean(req.body.pinned);
+    if (req.body.client !== undefined) {
+      message.client = await resolveClientId(req.body.client, req.user._id);
+    }
+    await message.save();
+
+    res.json({ message });
   } catch (err) {
     next(err);
   }

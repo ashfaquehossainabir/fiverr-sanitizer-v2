@@ -21,6 +21,18 @@ const messageSchema = new mongoose.Schema(
     sanitizedText: {
       type: String,
       required: [true, "Sanitized text is required."]
+    },
+    // Pinned messages float to the top of their tab.
+    pinned: {
+      type: Boolean,
+      default: false
+    },
+    // Optional link to a client/order so a conversation can be found later.
+    client: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+      default: null,
+      index: true
     }
   },
   { timestamps: true }

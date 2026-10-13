@@ -2,6 +2,8 @@ import express from "express";
 import User from "../models/User.js";
 import Tab from "../models/Tab.js";
 import Message from "../models/Message.js";
+import Template from "../models/Template.js";
+import Client from "../models/Client.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -111,6 +113,8 @@ router.delete("/account", async (req, res, next) => {
     const tabIds = await Tab.find({ user: req.user._id }).distinct("_id");
     await Message.deleteMany({ tab: { $in: tabIds } });
     await Tab.deleteMany({ user: req.user._id });
+    await Template.deleteMany({ user: req.user._id });
+    await Client.deleteMany({ user: req.user._id });
     await User.findByIdAndDelete(req.user._id);
 
     res.json({ message: "Account deleted successfully." });

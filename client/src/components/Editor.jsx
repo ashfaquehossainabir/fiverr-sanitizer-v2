@@ -2,16 +2,33 @@ import { useEffect, useState } from "react";
 import { sanitizeText } from "../lib/sanitizer.js";
 import { getGrammarSuggestions } from "../lib/grammarSuggestions.js";
 import { getReservedWarnings } from "../lib/utility/reservedWarnings.js";
+import { formatReadTime, getMessageStats, getToneChecks } from "../lib/messageStats.js";
 
 const URL_REGEX = /\bhttps?:\/\/[^\s]+/gi;
 const CHAR_LIMIT = 2500;
+const DRAFT_KEY = "sanitizer_draft";
 
-export default function Editor({ onSaveMessage, saving }) {
+// User text is injected into the preview as HTML (so matches can be
+// highlighted). Escape it first so pasted markup is shown, never executed.
+const escapeHtml = (text) =>
+  String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function readDraft() {
+  try {
+    return localStorage.getItem(DRAFT_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export default function Editor({ onSaveMessage, saving, loadedText, clients = [] }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  const [input, setInput] = useState("");
-  const [debouncedInput, setDebouncedInput] = useState("");
+  const [input, setInput] = useState(readDraft);
+  const [debouncedInput, setDebouncedInput] = useState(readDraft);
+  const [selectedClient, setSelectedClient] = useState("");
+  const [previousText, setPreviousText] = useState(null);
 
   const [translatedText, setTranslatedText] = useState("");
   const [isTranslated, setIsTranslated] = useState(false);
@@ -29,6 +46,28 @@ export default function Editor({ onSaveMessage, saving }) {
     return () => clearTimeout(timer);
   }, [input]);
 
+  /* Autosave the draft so a refresh or accidental tab close never loses work. */
+  useEffect(() => {
+    try {
+      if (input) localStorage.setItem(DRAFT_KEY, input);
+      else localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* storage unavailable - drafts just won't persist */
+    }
+  }, [input]);
+
+  /* A template sent from the Templates view replaces the editor text. The
+     previous text is kept so the swap can be undone with one click. */
+  useEffect(() => {
+    if (!loadedText?.id) return;
+    setPreviousText(input.trim() ? input : null);
+    setInput(loadedText.text);
+    setDebouncedInput(loadedText.text);
+    setIsTranslated(false);
+    setTranslatedText("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedText?.id]);
+
   const normalizedInput = debouncedInput.trimStart();
   const hasRealText = normalizedInput.trim().length > 0;
 
@@ -42,6 +81,9 @@ export default function Editor({ onSaveMessage, saving }) {
     ? sanitized.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const isLimitExceeded = charCount > CHAR_LIMIT;
+
+  const stats = hasRealCharacter ? getMessageStats(sanitized) : null;
+  const toneChecks = hasRealCharacter ? getToneChecks(sanitized) : [];
 
   useEffect(() => {
     if (!hasRealText) {
@@ -142,7 +184,7 @@ export default function Editor({ onSaveMessage, saving }) {
   };
 
   const highlightSanitized = (text) => {
-    let highlightedText = text;
+    let highlightedText = escapeHtml(text);
 
     grammarSuggestions.forEach((item) => {
       if (item.type === "spelling" && item.incorrect) {
@@ -172,13 +214,29 @@ export default function Editor({ onSaveMessage, saving }) {
   const handleSave = async () => {
     if (!hasRealText || !onSaveMessage) return;
     try {
-      await onSaveMessage({ originalText: input, sanitizedText: sanitized });
+      await onSaveMessage({ originalText: input, sanitizedText: sanitized, client: selectedClient || null });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch {
       // parent surfaces the error
     }
   };
+
+  /* Shortcuts: Ctrl/Cmd+Enter copies the sanitized text, Ctrl/Cmd+S saves it. */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        copyText();
+      } else if (e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (!saving) handleSave();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <div className="editor-card">
@@ -193,6 +251,22 @@ export default function Editor({ onSaveMessage, saving }) {
               </button>
             )}
           </div>
+
+          {previousText && (
+            <div className="undo-banner">
+              <span>Template loaded.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setInput(previousText);
+                  setDebouncedInput(previousText);
+                  setPreviousText(null);
+                }}
+              >
+                Restore my previous text
+              </button>
+            </div>
+          )}
 
           <textarea
             placeholder="Type your Fiverr message here..."
@@ -268,12 +342,26 @@ export default function Editor({ onSaveMessage, saving }) {
             className="preview-box"
             dangerouslySetInnerHTML={{
               __html: isTranslated
-                ? translatedText
+                ? escapeHtml(translatedText)
                 : hasRealText
                 ? highlightSanitized(sanitized)
                 : "Nothing to preview yet..."
             }}
           />
+
+          {clients.length > 0 && (
+            <label className="save-client-pick">
+              <span>Link to client (optional)</span>
+              <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)}>
+                <option value="">No client</option>
+                {clients.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}{c.project ? ` - ${c.project}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <button
             type="button"
@@ -285,6 +373,32 @@ export default function Editor({ onSaveMessage, saving }) {
           </button>
         </div>
       </div>
+
+      {stats && (
+        <div className="quality-box">
+          <div className="quality-head">
+            <h3>Message Quality</h3>
+            <div className="quality-stats">
+              <span>{formatReadTime(stats.readSeconds)}</span>
+              <span>{stats.sentences} sentence{stats.sentences === 1 ? "" : "s"}</span>
+              <span>~{stats.avgSentence} words each</span>
+            </div>
+          </div>
+          <ul className="quality-checks">
+            {toneChecks.map((c) => (
+              <li key={c.id} className={c.ok ? "ok" : "todo"}>
+                <span aria-hidden="true">{c.ok ? "✓" : "○"}</span> {c.label}
+              </li>
+            ))}
+            {stats.longSentences > 0 && (
+              <li className="todo">
+                <span aria-hidden="true">○</span> {stats.longSentences} very long sentence{stats.longSentences === 1 ? "" : "s"} - consider splitting
+              </li>
+            )}
+          </ul>
+          <p className="quality-hint">Tip: Ctrl/Cmd + Enter copies · Ctrl/Cmd + S saves to the tab.</p>
+        </div>
+      )}
 
       {grammarSuggestions.length > 0 && (
         <div className="grammar-box">

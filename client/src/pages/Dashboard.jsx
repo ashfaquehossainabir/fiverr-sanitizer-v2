@@ -1,13 +1,27 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api/axios.js";
 import Sidebar from "../components/Sidebar.jsx";
 import TopBar from "../components/TopBar.jsx";
 import Editor from "../components/Editor.jsx";
 import SavedMessages from "../components/SavedMessages.jsx";
 import AccountModal from "../components/AccountModal.jsx";
+import Overview from "../components/Overview.jsx";
+import Clients from "../components/Clients.jsx";
+import Templates from "../components/Templates.jsx";
+import SearchView from "../components/SearchView.jsx";
 import Loader from "../components/Loader.jsx";
 
+const CLOSED = ["completed", "archived"];
+
+const endOfToday = () => {
+  const d = new Date();
+  d.setHours(23, 59, 59, 999);
+  return d.getTime();
+};
+
 export default function Dashboard() {
+  const [view, setView] = useState("workspace");
+
   const [tabs, setTabs] = useState([]);
   const [tabsLoading, setTabsLoading] = useState(true);
   const [activeTabId, setActiveTabId] = useState(null);
@@ -16,9 +30,16 @@ export default function Dashboard() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [clients, setClients] = useState([]);
+  const [loadedText, setLoadedText] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [errorBanner, setErrorBanner] = useState("");
+
+  // Stable identity matters: child panels list this in effect dependencies.
+  const reportError = useCallback((msg) => setErrorBanner(msg), []);
 
   const activeTab = tabs.find((t) => t._id === activeTabId) || null;
 
@@ -40,6 +61,24 @@ export default function Dashboard() {
   useEffect(() => {
     loadTabs();
   }, [loadTabs]);
+
+  const loadClients = useCallback(async () => {
+    try {
+      const { data } = await api.get("/clients");
+      setClients(data.clients);
+    } catch {
+      /* the Clients view reports its own errors; this list is a convenience */
+    }
+  }, []);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
+
+  const handleClientsChanged = useCallback(() => {
+    loadClients();
+    setRefreshKey((k) => k + 1);
+  }, [loadClients]);
 
   const loadMessages = useCallback(async (tabId) => {
     if (!tabId) {
@@ -66,6 +105,7 @@ export default function Dashboard() {
       const { data } = await api.post("/tabs", { name });
       setTabs((prev) => [...prev, data.tab]);
       setActiveTabId(data.tab._id);
+      setView("workspace");
     } catch (err) {
       setErrorBanner(err.response?.data?.message || "Could not create the tab.");
     }
@@ -90,12 +130,13 @@ export default function Dashboard() {
         }
         return next;
       });
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       setErrorBanner(err.response?.data?.message || "Could not delete the tab.");
     }
   };
 
-  const handleSaveMessage = async ({ originalText, sanitizedText }) => {
+  const handleSaveMessage = async ({ originalText, sanitizedText, client }) => {
     if (!activeTabId) {
       setErrorBanner("Create or select a tab before saving a message.");
       throw new Error("No active tab");
@@ -104,9 +145,11 @@ export default function Dashboard() {
     try {
       const { data } = await api.post(`/tabs/${activeTabId}/messages`, {
         originalText,
-        sanitizedText
+        sanitizedText,
+        client
       });
       setMessages((prev) => [data.message, ...prev]);
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       setErrorBanner(err.response?.data?.message || "Could not save this message.");
       throw err;
@@ -115,19 +158,114 @@ export default function Dashboard() {
     }
   };
 
+  const handleTogglePin = async (message) => {
+    try {
+      const { data } = await api.put(`/tabs/${activeTabId}/messages/${message._id}`, {
+        pinned: !message.pinned
+      });
+      setMessages((prev) =>
+        prev
+          .map((m) => (m._id === message._id ? data.message : m))
+          // Same ordering the server uses: pinned first, then newest.
+          .sort((a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.createdAt) - new Date(a.createdAt))
+      );
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setErrorBanner(err.response?.data?.message || "Could not update this message.");
+    }
+  };
+
   const handleDeleteMessage = async (messageId) => {
     if (!activeTabId) return;
     try {
       await api.delete(`/tabs/${activeTabId}/messages/${messageId}`);
       setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       setErrorBanner(err.response?.data?.message || "Could not delete the saved message.");
     }
   };
 
+  const handleUseTemplate = (text) => {
+    setLoadedText({ id: Date.now(), text });
+    setView("workspace");
+  };
+
+  const openTabFromSearch = (tabId) => {
+    setActiveTabId(tabId);
+    setView("workspace");
+  };
+
+  const openClients = useCallback(() => setView("clients"), []);
+
+  const clientNames = useMemo(
+    () => Object.fromEntries(clients.map((c) => [c._id, c.name])),
+    [clients]
+  );
+  const linkableClients = useMemo(() => clients.filter((c) => !CLOSED.includes(c.status)), [clients]);
+  const followUpCount = useMemo(() => {
+    const limit = endOfToday();
+    return clients.filter(
+      (c) => c.followUpAt && !CLOSED.includes(c.status) && new Date(c.followUpAt).getTime() <= limit
+    ).length;
+  }, [clients]);
+
+  const HEADINGS = {
+    workspace: [
+      "Message Workspace",
+      activeTab?.name || "Select or create a tab to get started"
+    ],
+    overview: ["Overview", "Your week at a glance"],
+    clients: ["Clients & Orders", "Deadlines, follow-ups and pipeline"],
+    templates: ["Quick Reply Templates", "Reusable messages with fill-in placeholders"],
+    search: ["Search", "Find any saved message"]
+  };
+  const [title, subtitle] = HEADINGS[view];
+
+  const renderWorkspace = () => {
+    if (tabsLoading) {
+      return (
+        <div className="dashboard-loading">
+          <Loader label="Loading your workspace" />
+        </div>
+      );
+    }
+    return (
+      <>
+        <Editor
+          onSaveMessage={handleSaveMessage}
+          saving={saving}
+          loadedText={loadedText}
+          clients={linkableClients}
+        />
+
+        {tabs.length === 0 ? (
+          <div className="dashboard-loading workspace-note">
+            Want to keep your sanitized messages? Use <strong>+ New Tab</strong> in the sidebar to
+            create your first tab. You can sanitize and copy without one.
+          </div>
+        ) : (
+          <section className="saved-messages-section">
+            <h2>Saved Messages {activeTab ? `in "${activeTab.name}"` : ""}</h2>
+            <SavedMessages
+              messages={messages}
+              loading={messagesLoading}
+              onDelete={handleDeleteMessage}
+              onTogglePin={handleTogglePin}
+              clientNames={clientNames}
+            />
+          </section>
+        )}
+      </>
+    );
+  };
+
   return (
     <div className="dashboard-shell">
       <Sidebar
+        view={view}
+        onChangeView={setView}
+        followUpCount={followUpCount}
         tabs={tabs}
         activeTabId={activeTabId}
         onSelectTab={setActiveTabId}
@@ -140,7 +278,8 @@ export default function Dashboard() {
 
       <div className="dashboard-main">
         <TopBar
-          activeTabName={activeTab?.name}
+          title={title}
+          subtitle={subtitle}
           onMenuClick={() => setSidebarOpen(true)}
           onAvatarClick={() => setAccountOpen(true)}
         />
@@ -153,28 +292,13 @@ export default function Dashboard() {
             </div>
           )}
 
-          {tabsLoading ? (
-            <div className="dashboard-loading">
-              <Loader label="Loading your workspace" />
-            </div>
-          ) : tabs.length === 0 ? (
-            <div className="dashboard-loading">
-              You don&apos;t have any tabs yet. Use <strong>+ New Tab</strong> in the sidebar to create your first one.
-            </div>
-          ) : (
-            <>
-              <Editor onSaveMessage={handleSaveMessage} saving={saving} />
-
-              <section className="saved-messages-section">
-                <h2>Saved Messages {activeTab ? `in "${activeTab.name}"` : ""}</h2>
-                <SavedMessages
-                  messages={messages}
-                  loading={messagesLoading}
-                  onDelete={handleDeleteMessage}
-                />
-              </section>
-            </>
+          {view === "workspace" && renderWorkspace()}
+          {view === "overview" && (
+            <Overview refreshKey={refreshKey} onOpenClients={openClients} onError={reportError} />
           )}
+          {view === "clients" && <Clients onError={reportError} onChanged={handleClientsChanged} />}
+          {view === "templates" && <Templates onUseTemplate={handleUseTemplate} onError={reportError} />}
+          {view === "search" && <SearchView onOpenTab={openTabFromSearch} onError={reportError} />}
         </div>
       </div>
 

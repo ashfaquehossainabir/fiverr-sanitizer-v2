@@ -2,6 +2,8 @@ import express from "express";
 import User from "../models/User.js";
 import Tab from "../models/Tab.js";
 import Message from "../models/Message.js";
+import Template from "../models/Template.js";
+import Client from "../models/Client.js";
 import Settings from "../models/Settings.js";
 import { protect, adminOnly } from "../middleware/auth.js";
 
@@ -101,6 +103,8 @@ router.delete("/users/:id/reject", async (req, res, next) => {
     const tabIds = await Tab.find({ user: user._id }).distinct("_id");
     await Message.deleteMany({ tab: { $in: tabIds } });
     await Tab.deleteMany({ user: user._id });
+    await Template.deleteMany({ user: user._id });
+    await Client.deleteMany({ user: user._id });
     await User.findByIdAndDelete(user._id);
 
     res.json({ message: `${user.name}'s registration was rejected and permanently removed.` });
@@ -174,6 +178,8 @@ router.delete("/users/:id", async (req, res, next) => {
     const tabIds = await Tab.find({ user: user._id }).distinct("_id");
     await Message.deleteMany({ tab: { $in: tabIds } });
     await Tab.deleteMany({ user: user._id });
+    await Template.deleteMany({ user: user._id });
+    await Client.deleteMany({ user: user._id });
     await User.findByIdAndDelete(user._id);
 
     res.json({ message: "User deleted successfully." });

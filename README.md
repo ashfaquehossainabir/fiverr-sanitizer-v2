@@ -34,6 +34,21 @@ laptop, tablet, and mobile).
   and the admin dashboard reflows from a multi-column grid down to a single
   stacked column on phones
 
+## v8 — Daily-use features
+
+- **Overview** — messages saved this week vs last, a 14-day activity chart, pipeline value, completed value, follow-ups due and upcoming deadlines, plus a one-click **JSON backup** export.
+- **Clients & Orders** — track each buyer with status (lead → completed), amount, deadline and follow-up date. Overdue/soon badges, "remind tomorrow / in 3 days" snooze, and a sidebar badge counting follow-ups due today.
+- **Quick Reply Templates** — reusable messages with `{{client}}`-style placeholders, a fill-in form, categories, search, usage counts, and 6 starter templates. Using one sends it to the editor (with a "restore my previous text" undo).
+- **Message Quality panel** — read time, sentence length and a tone checklist (greeting, politeness, clear next step, sign-off, no shouting).
+- **Draft autosave** — unsent text survives refreshes and view switches.
+- **Pin, search and client-link saved messages**; global **Search** across every tab.
+- **Dark / light mode** on every page (workspace, admin, login, register, verify). Follows your OS until you pick a side, then remembers your choice, syncs across open tabs, and loads with no flash.
+- **Shortcuts** — Ctrl/Cmd+Enter copies the sanitized text, Ctrl/Cmd+S saves to the tab.
+
+New API: `/api/clients`, `/api/templates`, `/api/insights`, `/api/export`, `/api/search?q=`, `PUT /api/tabs/:id/messages/:messageId` (pin / link client).
+Deleting an account (self-service or by an admin) now also removes that user's templates and clients.
+Preview text is HTML-escaped before highlighting.
+
 ## Prerequisites
 
 - Node.js 18+

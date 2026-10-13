@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import ConfirmModal from "../components/ConfirmModal.jsx";
 import ResetPasswordModal from "../components/ResetPasswordModal.jsx";
 import Loader from "../components/Loader.jsx";
+import ThemeToggle from "../components/ThemeToggle.jsx";
 
 // How often the dashboard silently re-checks for new pending registrations.
 const POLL_INTERVAL_MS = 20000;
@@ -285,6 +286,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="admin-topbar-actions">
+          <ThemeToggle />
           <Link to="/dashboard" className="admin-back-link" aria-label="Back to Workspace">
             <svg className="admin-topbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5" />

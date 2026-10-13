@@ -6,6 +6,9 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import tabRoutes from "./routes/tabRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import clientRoutes from "./routes/clientRoutes.js";
+import templateRoutes from "./routes/templateRoutes.js";
+import insightsRoutes from "./routes/insightsRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
@@ -32,6 +35,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/tabs", tabRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/templates", templateRoutes);
+// insights, export and search live at /api/insights, /api/export, /api/search
+app.use("/api", insightsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

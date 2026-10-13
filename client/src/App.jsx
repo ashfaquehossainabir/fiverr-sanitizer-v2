@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
@@ -7,6 +7,7 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
+import ThemeToggle from "./components/ThemeToggle.jsx";
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -21,9 +22,19 @@ function PublicOnlyRoute({ children }) {
   return children;
 }
 
+// Pages that have their own header render the toggle there; everything else
+// (login, register, verify email) gets a floating one.
+function FloatingThemeToggle() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) return null;
+  return <ThemeToggle floating />;
+}
+
 export default function App() {
   return (
-    <Routes>
+    <>
+      <FloatingThemeToggle />
+      <Routes>
       <Route
         path="/login"
         element={
@@ -57,6 +68,7 @@ export default function App() {
         }
       />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
