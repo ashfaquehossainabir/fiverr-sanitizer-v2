@@ -79,9 +79,6 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
             <span className="saved-message-when">
               {msg.pinned && <span className="pin-mark" title="Pinned">📌</span>}
               {formatDate(msg.createdAt)}
-              {msg.client && clientNames[msg.client] && (
-                <span className="badge">{clientNames[msg.client]}</span>
-              )}
             </span>
             <div className="saved-message-actions">
               <button type="button" onClick={() => onTogglePin(msg)}>
@@ -99,6 +96,11 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
             </div>
           </div>
           <p className="saved-message-text">{msg.sanitizedText}</p>
+          {msg.client && clientNames[msg.client] && (
+            <div className="saved-message-foot">
+              <span className="badge badge-ok">{clientNames[msg.client]}</span>
+            </div>
+          )}
         </div>
       ))}
 

@@ -20,7 +20,12 @@ export default function TopBar({ title, subtitle, onMenuClick, onAvatarClick }) 
 
       <div className="topbar-title">
         <h1>{title}</h1>
-        <p>{subtitle}</p>
+        {subtitle && (
+          <>
+            <span className="crumb-sep" aria-hidden="true">/</span>
+            <span className="crumb">{subtitle}</span>
+          </>
+        )}
       </div>
 
       <div className="topbar-right">

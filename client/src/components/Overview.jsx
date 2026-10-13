@@ -82,6 +82,10 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
               </div>
             ))}
           </div>
+          <div className="spark-labels">
+            <span>{fmtDate(data.perDay[0].date)}</span>
+            <span>Today</span>
+          </div>
         </section>
 
         <section className="overview-card">

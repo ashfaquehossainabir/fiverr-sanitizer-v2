@@ -189,9 +189,10 @@ export default function Clients({ onError, onChanged }) {
                 {c.notes && <p className="item-body">{c.notes}</p>}
 
                 <footer>
-                  <div className="item-actions">
-                    <button type="button" onClick={() => snooze(c, 1)}>Remind tomorrow</button>
-                    <button type="button" onClick={() => snooze(c, 3)}>in 3 days</button>
+                  <div className="item-actions item-actions-remind">
+                    <span className="muted">Remind</span>
+                    <button type="button" onClick={() => snooze(c, 1)}>Tomorrow</button>
+                    <button type="button" onClick={() => snooze(c, 3)}>3 days</button>
                   </div>
                   <div className="item-actions">
                     <button type="button" onClick={() => openEdit(c)}>Edit</button>

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 const KEY = "sanitizer_theme";
-const META_COLORS = { light: "#F3F6F5", dark: "#0B1411" };
+const META_COLORS = { light: "#F3F6F5", dark: "#0F0F11" };
 
 const readStored = () => {
   try {

@@ -43,6 +43,8 @@ laptop, tablet, and mobile).
 - **Draft autosave** — unsent text survives refreshes and view switches.
 - **Pin, search and client-link saved messages**; global **Search** across every tab.
 - **Dark / light mode** on every page (workspace, admin, login, register, verify). Follows your OS until you pick a side, then remembers your choice, syncs across open tabs, and loads with no flash.
+- **Organized UI** — slim breadcrumb top bar (no duplicate headings), a compact sidebar (Menu / Tabs with a "+" button), and a workspace split into a *compose* zone and a *review* zone (compliance warnings, message quality and grammar suggestions side by side).
+- **Dark theme is neutral deep gray** (`#0F0F11` page, not pure black, no color tint), with fixed contrast on warnings.
 - **Shortcuts** — Ctrl/Cmd+Enter copies the sanitized text, Ctrl/Cmd+S saves to the tab.
 
 New API: `/api/clients`, `/api/templates`, `/api/insights`, `/api/export`, `/api/search?q=`, `PUT /api/tabs/:id/messages/:messageId` (pin / link client).

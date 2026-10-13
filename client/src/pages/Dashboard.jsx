@@ -211,14 +211,11 @@ export default function Dashboard() {
   }, [clients]);
 
   const HEADINGS = {
-    workspace: [
-      "Message Workspace",
-      activeTab?.name || "Select or create a tab to get started"
-    ],
-    overview: ["Overview", "Your week at a glance"],
-    clients: ["Clients & Orders", "Deadlines, follow-ups and pipeline"],
-    templates: ["Quick Reply Templates", "Reusable messages with fill-in placeholders"],
-    search: ["Search", "Find any saved message"]
+    workspace: ["Workspace", activeTab?.name || ""],
+    overview: ["Overview", ""],
+    clients: ["Clients", ""],
+    templates: ["Templates", ""],
+    search: ["Search", ""]
   };
   const [title, subtitle] = HEADINGS[view];
 
@@ -246,7 +243,11 @@ export default function Dashboard() {
           </div>
         ) : (
           <section className="saved-messages-section">
-            <h2>Saved Messages {activeTab ? `in "${activeTab.name}"` : ""}</h2>
+            <div className="section-head">
+              <h2>Saved messages</h2>
+              <span className="count-pill">{messages.length}</span>
+              {activeTab && <span className="section-tab"># {activeTab.name}</span>}
+            </div>
             <SavedMessages
               messages={messages}
               loading={messagesLoading}

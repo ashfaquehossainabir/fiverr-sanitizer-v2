@@ -82,6 +82,7 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
     : 0;
   const isLimitExceeded = charCount > CHAR_LIMIT;
 
+  const hasWarnings = reservedWarnings.length > 0 || emailRemoved;
   const stats = hasRealCharacter ? getMessageStats(sanitized) : null;
   const toneChecks = hasRealCharacter ? getToneChecks(sanitized) : [];
 
@@ -282,25 +283,6 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
             Words: {wordCount} | Characters: {charCount}
           </div>
 
-          {(reservedWarnings.length > 0 || emailRemoved) && (
-            <div className="warning-box">
-              <h3>Compliance Warnings</h3>
-              <div className="warning-list">
-                {emailRemoved && (
-                  <div className="warning-item">
-                    <span className="warning-icon">⚠️</span>
-                    <span>Email address was removed for compliance reasons.</span>
-                  </div>
-                )}
-                {reservedWarnings.map((item, index) => (
-                  <div key={index} className="warning-item">
-                    <span className="warning-icon">⚠️</span>
-                    <span>{item.message}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* PREVIEW COLUMN */}
@@ -374,43 +356,72 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
         </div>
       </div>
 
-      {stats && (
-        <div className="quality-box">
-          <div className="quality-head">
-            <h3>Message Quality</h3>
-            <div className="quality-stats">
-              <span>{formatReadTime(stats.readSeconds)}</span>
-              <span>{stats.sentences} sentence{stats.sentences === 1 ? "" : "s"}</span>
-              <span>~{stats.avgSentence} words each</span>
-            </div>
-          </div>
-          <ul className="quality-checks">
-            {toneChecks.map((c) => (
-              <li key={c.id} className={c.ok ? "ok" : "todo"}>
-                <span aria-hidden="true">{c.ok ? "✓" : "○"}</span> {c.label}
-              </li>
-            ))}
-            {stats.longSentences > 0 && (
-              <li className="todo">
-                <span aria-hidden="true">○</span> {stats.longSentences} very long sentence{stats.longSentences === 1 ? "" : "s"} - consider splitting
-              </li>
+      {(hasWarnings || stats || grammarSuggestions.length > 0) && (
+        <div className="review-grid">
+          {(hasWarnings || stats) && (
+            <div className="review-col">
+            {hasWarnings && (
+              <div className="warning-box">
+                <h3>Compliance Warnings</h3>
+                <div className="warning-list">
+                  {emailRemoved && (
+                    <div className="warning-item">
+                      <span className="warning-icon">⚠️</span>
+                      <span>Email address was removed for compliance reasons.</span>
+                    </div>
+                  )}
+                  {reservedWarnings.map((item, index) => (
+                    <div key={index} className="warning-item">
+                      <span className="warning-icon">⚠️</span>
+                      <span>{item.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-          </ul>
-          <p className="quality-hint">Tip: Ctrl/Cmd + Enter copies · Ctrl/Cmd + S saves to the tab.</p>
-        </div>
-      )}
-
-      {grammarSuggestions.length > 0 && (
-        <div className="grammar-box">
-          <h3>Grammar Suggestions</h3>
-          {grammarSuggestions.map((item, index) => (
-            <div key={index} className="grammar-item">
-              <span>{item.message}</span>
-              <button className="apply-btn" onClick={() => applyGrammarFix(item.fixedText)}>
-                Apply
-              </button>
+          {stats && (
+            <div className="quality-box">
+              <div className="quality-head">
+                <h3>Message Quality</h3>
+                <div className="quality-stats">
+                  <span>{formatReadTime(stats.readSeconds)}</span>
+                  <span>{stats.sentences} sentence{stats.sentences === 1 ? "" : "s"}</span>
+                  <span>~{stats.avgSentence} words each</span>
+                </div>
+              </div>
+              <ul className="quality-checks">
+                {toneChecks.map((c) => (
+                  <li key={c.id} className={c.ok ? "ok" : "todo"}>
+                    <span aria-hidden="true">{c.ok ? "✓" : "○"}</span> {c.label}
+                  </li>
+                ))}
+                {stats.longSentences > 0 && (
+                  <li className="todo">
+                    <span aria-hidden="true">○</span> {stats.longSentences} very long sentence{stats.longSentences === 1 ? "" : "s"} - consider splitting
+                  </li>
+                )}
+              </ul>
+              <p className="quality-hint">Tip: Ctrl/Cmd + Enter copies · Ctrl/Cmd + S saves to the tab.</p>
             </div>
-          ))}
+          )}
+            </div>
+          )}
+
+          {grammarSuggestions.length > 0 && (
+            <div className="grammar-box">
+              <h3>
+                Grammar Suggestions <span className="count-pill">{grammarSuggestions.length}</span>
+              </h3>
+              {grammarSuggestions.map((item, index) => (
+                <div key={index} className="grammar-item">
+                  <span>{item.message}</span>
+                  <button className="apply-btn" onClick={() => applyGrammarFix(item.fixedText)}>
+                    Apply
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -78,6 +78,7 @@ export default function Sidebar({
           </button>
         </div>
 
+        <p className="sidebar-section-label">Menu</p>
         <nav className="sidebar-views" aria-label="Sections">
           {VIEWS.map((v) => (
             <button
@@ -98,11 +99,20 @@ export default function Sidebar({
           ))}
         </nav>
 
-        <p className="sidebar-section-label">Tabs</p>
-
-        <button type="button" className="sidebar-new-tab" onClick={() => setCreating((v) => !v)}>
-          + New Tab
-        </button>
+        <div className="sidebar-section-row">
+          <p className="sidebar-section-label">
+            Tabs <span className="sidebar-count">{tabs.length}</span>
+          </p>
+          <button
+            type="button"
+            className="sidebar-add-tab"
+            onClick={() => setCreating((v) => !v)}
+            aria-label="New tab"
+            title="New tab"
+          >
+            +
+          </button>
+        </div>
 
         {creating && (
           <form className="sidebar-new-tab-form" onSubmit={handleCreate}>
