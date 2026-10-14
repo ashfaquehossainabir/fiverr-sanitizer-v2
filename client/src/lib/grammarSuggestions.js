@@ -1,3 +1,6 @@
+// vowel-letter words pronounced with a consonant sound ("a user", "a university", "a one-time")
+const A_EXCEPTIONS = /^(uni\w*|use\w*|usu\w*|uti\w*|eu\w*|one\w*|once)$/i;
+
 export function getGrammarSuggestions(text) {
   if (!text) return [];
 
@@ -13,7 +16,12 @@ export function getGrammarSuggestions(text) {
     {
       test: /\bcan you\b/i,
       message: 'For a professional tone, use "Could you".',
-      fix: (t) => t.replace(/\bcan you\b/gi, "Could you"),
+      // Only capitalise at the start of a sentence: "so could you", not "so Could you".
+      fix: (t) =>
+        t.replace(/\bcan you\b/gi, (m, offset, whole) => {
+          const before = whole.slice(0, offset).trimEnd();
+          return before === "" || /[.!?]$/.test(before) ? "Could you" : "could you";
+        }),
       type: "grammar"
     },
 
@@ -44,6 +52,7 @@ export function getGrammarSuggestions(text) {
       test: /\bit was\b|\bthere is\b|\bthere are\b/i,
       message: "Avoid vague phrases like 'it was' or 'there is'. Be more specific.",
       fix: (t) => t,
+      dismissOnly: true, // advice only: there is nothing to auto-apply
       type: "grammar"
     },
 
@@ -87,17 +96,25 @@ export function getGrammarSuggestions(text) {
 
     // Tense consistency
     {
-      test: /\byesterday.*\b(is|are)\b/i,
+      test: /\byesterday\b[^.!?\n]*\b(is|are)\b/i,
       message: "Use past tense when referring to the past.",
-      fix: (t) => t.replace(/\b(is|are)\b/gi, "was"),
+      // Only touch the sentence that mentions "yesterday".
+      fix: (t) =>
+        t.replace(/[^.!?\n]*\byesterday\b[^.!?\n]*/gi, (sentence) =>
+          sentence.replace(/\bis\b/gi, "was").replace(/\bare\b/gi, "were")
+        ),
       type: "grammar"
     },
 
     // Articles
     {
-      test: /\ba\s+[aeiou]\w+/i,
+      // Words that start with a vowel LETTER but a consonant SOUND keep "a" (a user, a one-off).
+      check: (t) => [...t.matchAll(/\ba\s+([aeiou]\w*)/gi)].some((m) => !A_EXCEPTIONS.test(m[1])),
       message: 'Use "an" before words that start with vowel sounds.',
-      fix: (t) => t.replace(/\ba\s+([aeiou]\w+)/gi, "an $1"),
+      fix: (t) =>
+        t.replace(/\b(a)(\s+)([aeiou]\w*)/gi, (m, a, space, word) =>
+          A_EXCEPTIONS.test(word) ? m : `${a === "A" ? "An" : "an"}${space}${word}`
+        ),
       type: "grammar"
     },
 
@@ -169,11 +186,13 @@ export function getGrammarSuggestions(text) {
 
   /* -------------------- APPLY GRAMMAR -------------------- */
   grammarRules.forEach((rule) => {
-    if (rule.test.test(text)) {
+    const hit = rule.check ? rule.check(text) : rule.test.test(text);
+    if (hit) {
       suggestions.push({
         type: rule.type,
         message: rule.message,
-        fixedText: rule.fix(text)
+        fixedText: rule.fix(text),
+        dismissOnly: Boolean(rule.dismissOnly)
       });
     }
   });

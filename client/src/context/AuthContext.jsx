@@ -89,6 +89,12 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const updateGoal = useCallback(async (monthlyGoal) => {
+    const { data } = await api.put("/users/goal", { monthlyGoal });
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const deleteAccount = useCallback(async (password) => {
     const { data } = await api.delete("/users/account", { data: { password } });
     localStorage.removeItem(TOKEN_KEY);
@@ -109,6 +115,7 @@ export function AuthProvider({ children }) {
     logout,
     updateProfile,
     updatePassword,
+    updateGoal,
     deleteAccount
   };
 

@@ -19,4 +19,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// An expired or revoked session used to surface as a confusing error banner on
+// every action. Send the user back to sign in instead. Only the auth middleware's
+// "Not authorized" replies count: a wrong current-password answer is also a 401.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message = error.response?.data?.message || "";
+    if (error.response?.status === 401 && /not authorized/i.test(message) && localStorage.getItem("sanitizer_token")) {
+      localStorage.removeItem("sanitizer_token");
+      if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

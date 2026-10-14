@@ -57,6 +57,13 @@ const userSchema = new mongoose.Schema(
     isApproved: {
       type: Boolean,
       default: false
+    },
+    // Optional monthly earnings target shown on the Overview. 0 = no goal.
+    monthlyGoal: {
+      type: Number,
+      min: 0,
+      max: 100000000,
+      default: 0
     }
   },
   { timestamps: true }
@@ -84,6 +91,7 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     isApproved: this.isApproved,
     authProvider: this.authProvider,
     hasPassword: Boolean(this.password),
+    monthlyGoal: this.monthlyGoal || 0,
     createdAt: this.createdAt
   };
 };

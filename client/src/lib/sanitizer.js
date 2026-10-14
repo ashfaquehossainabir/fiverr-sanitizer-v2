@@ -153,7 +153,8 @@ export function sanitizeText(text) {
      RESTORE URLS
   ================================ */
   urls.forEach((url, index) => {
-    sanitized = sanitized.replace(`__URL_${index}__`, url);
+    // Function replacer: a URL containing "$&" or "$1" must be restored literally.
+    sanitized = sanitized.replace(`__URL_${index}__`, () => url);
   });
 
   return {

@@ -45,7 +45,11 @@ router.post("/", async (req, res, next) => {
     if (data.status && !CLIENT_STATUSES.includes(data.status)) {
       return res.status(400).json({ message: "Invalid status." });
     }
-    const client = await Client.create({ ...data, user: req.user._id });
+    const client = await Client.create({
+      ...data,
+      user: req.user._id,
+      completedAt: data.status === "completed" ? new Date() : null
+    });
     res.status(201).json({ client });
   } catch (err) {
     next(err);
@@ -62,7 +66,10 @@ router.put("/:id", async (req, res, next) => {
     if (data.name !== undefined && !String(data.name).trim()) {
       return res.status(400).json({ message: "Client name is required." });
     }
+    const wasCompleted = client.status === "completed";
     Object.assign(client, data);
+    if (client.status === "completed" && !wasCompleted) client.completedAt = new Date();
+    else if (client.status !== "completed") client.completedAt = null;
     await client.save();
     res.json({ client });
   } catch (err) {

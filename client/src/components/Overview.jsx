@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios.js";
 import Loader from "./Loader.jsx";
+import { GoalCard, OfferCalculator } from "./EarningsTools.jsx";
+import { daysUntil, formatDay } from "../lib/dates.js";
 
 function Stat({ label, value, hint }) {
   return (
@@ -12,7 +14,7 @@ function Stat({ label, value, hint }) {
   );
 }
 
-const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+const fmtDate = (d) => formatDay(d);
 
 export default function Overview({ refreshKey, onOpenClients, onError }) {
   const [data, setData] = useState(null);
@@ -48,6 +50,8 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
 
   if (!data) return <Loader label="Loading your overview" />;
 
+  // Same rule as the sidebar badge and Today strip: due today or earlier.
+  const dueFollowUps = data.dueFollowUps.filter((c) => daysUntil(c.followUpAt) <= 0);
   const max = Math.max(1, ...data.perDay.map((d) => d.count));
   const delta = data.week.thisWeek - data.week.lastWeek;
 
@@ -72,6 +76,11 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
         <Stat label="Completed value" value={data.pipeline.earned.toLocaleString()} hint="from completed orders" />
       </div>
 
+      <div className="overview-cols overview-tools">
+        <GoalCard earnedThisMonth={data.pipeline.earnedThisMonth || 0} />
+        <OfferCalculator />
+      </div>
+
       <div className="overview-cols">
         <section className="overview-card">
           <h3>Messages · last 14 days</h3>
@@ -90,11 +99,11 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
 
         <section className="overview-card">
           <h3>Follow-ups due</h3>
-          {data.dueFollowUps.length === 0 ? (
+          {dueFollowUps.length === 0 ? (
             <p className="muted">You are all caught up. 🎉</p>
           ) : (
             <ul className="mini-list">
-              {data.dueFollowUps.map((c) => (
+              {dueFollowUps.map((c) => (
                 <li key={c._id}>
                   <button type="button" onClick={onOpenClients}>
                     <strong>{c.name}</strong>

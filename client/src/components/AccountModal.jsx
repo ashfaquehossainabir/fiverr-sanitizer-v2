@@ -1,3 +1,4 @@
+import useEscape from "../hooks/useEscape.js";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import ConfirmModal from "./ConfirmModal.jsx";
@@ -10,6 +11,7 @@ function getInitials(name) {
 }
 
 export default function AccountModal({ onClose }) {
+  useEscape(onClose);
   const { user, updateProfile, updatePassword, deleteAccount, logout } = useAuth();
   const hasPassword = Boolean(user?.hasPassword);
 

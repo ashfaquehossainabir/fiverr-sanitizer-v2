@@ -18,6 +18,26 @@ export function fillTemplate(body, values) {
   });
 }
 
+const formatDeadline = (d) =>
+  d ? new Date(d).toLocaleDateString(undefined, { month: "long", day: "numeric" }) : "";
+
+// Pre-fills well-known placeholders ({{client}}, {{project}}, {{deadline}}) from the
+// client the message is linked to, so most templates need zero typing.
+export function autoFillValues(vars, client) {
+  const out = {};
+  vars.forEach((v) => {
+    const key = v.toLowerCase();
+    let value = "";
+    if (client) {
+      if (["client", "name", "buyer", "customer"].includes(key)) value = client.name || "";
+      else if (["project", "order", "gig"].includes(key)) value = client.project || "";
+      else if (["deadline", "date", "delivery date", "due date"].includes(key)) value = formatDeadline(client.deadline);
+    }
+    out[v] = value;
+  });
+  return out;
+}
+
 export const STARTER_TEMPLATES = [
   {
     title: "Greeting + project kickoff",

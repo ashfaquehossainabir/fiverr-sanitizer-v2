@@ -44,6 +44,13 @@ router.get("/insights", async (req, res, next) => {
     const pipelineValue = open.reduce((sum, c) => sum + (c.amount || 0), 0);
     const earned = completed.reduce((sum, c) => sum + (c.amount || 0), 0);
 
+    // Orders completed this calendar month. Older completed orders that predate
+    // the completedAt field fall back to their last-updated date.
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const earnedThisMonth = completed
+      .filter((c) => (c.completedAt || c.updatedAt) >= monthStart)
+      .reduce((sum, c) => sum + (c.amount || 0), 0);
+
     const byStatus = {};
     clients.forEach((c) => {
       byStatus[c.status] = (byStatus[c.status] || 0) + 1;
@@ -64,7 +71,7 @@ router.get("/insights", async (req, res, next) => {
       week: { thisWeek, lastWeek },
       perDay: Object.entries(perDay).map(([date, count]) => ({ date, count })),
       topTemplates: templates,
-      pipeline: { openCount: open.length, pipelineValue, earned, byStatus },
+      pipeline: { openCount: open.length, pipelineValue, earned, earnedThisMonth, byStatus },
       dueFollowUps,
       upcomingDeadlines
     });

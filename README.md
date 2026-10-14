@@ -51,6 +51,35 @@ New API: `/api/clients`, `/api/templates`, `/api/insights`, `/api/export`, `/api
 Deleting an account (self-service or by an admin) now also removes that user's templates and clients.
 Preview text is HTML-escaped before highlighting.
 
+## v9.3 — Daily-use features & UI polish
+
+- **Command palette** (Ctrl/Cmd+K): jump to any page or tab, insert a template, toggle dark mode, or search every saved message. Press **?** for all shortcuts.
+- **Template quick-insert** in the editor: placeholders like `{{client}}`, `{{project}}`, `{{deadline}}` auto-fill from the linked client; only unknown ones are asked for.
+- **Paste** button, **Copy & Save** in one click (Ctrl/Cmd+Shift+Enter), and a live character-limit meter.
+- **Saved messages**: *Use again* in the editor, *Pinned* filter, and *Export* a tab to .txt.
+- **Today strip** on the workspace: follow-ups due, overdue, due in 3 days, open orders.
+- **Overview**: monthly earnings goal (stored on your account) with per-day pace, plus a two-way **offer calculator** (fee % is editable).
+- **Toasts** replace alert() popups; **bottom navigation** on phones and tablets; template picker becomes a bottom sheet on phones.
+- Fixes: loading-screen logo shadow in dark mode; closed mobile sidebar no longer leaks a shadow at the left edge.
+
+New/changed API: `PUT /api/users/goal`; clients get `completedAt`; `/api/insights` returns `pipeline.earnedThisMonth`.
+
+## v9.4 — Bug fixes, organization & touch ergonomics
+
+**Fixed**
+- Deadlines/follow-ups no longer shift by a day in some timezones (new `lib/dates.js`); the Today strip, sidebar badge and Overview now use the same "due today or earlier" rule.
+- Sanitizer: a URL containing `$` is restored intact. New warning for phone numbers written with spaces/dashes/brackets (these are not auto-masked).
+- Grammar: "a user / a unique / a one-time" is no longer flagged as a→an; "can you" is only capitalised at the start of a sentence; the "yesterday" tense fix only touches that sentence; advice-only items show *Dismiss* instead of a do-nothing *Apply*.
+- Editor: Read-aloud no longer gets stuck or crashes on browsers without speech support; Translate has a loading state and a *Show English* toggle and ignores stale responses; drafts are stored per account (no leaking between users on a shared browser); a linked client that was completed since is unlinked automatically; Ctrl+S / Ctrl+Enter are ignored while a dialog is open.
+- Expired sessions now return you to sign-in instead of showing a cryptic error.
+- Dialogs close with Escape; destructive dialogs focus *Cancel*; the tab "⋮" menu closes on outside click; renaming a tab sends one request, Escape cancels.
+- "No tabs yet" now has a one-click *Create a General tab* button; saving a message keeps pinned messages on top; starter-template import keeps partial results.
+
+**Improved**
+- Clients: status chips show counts, sort by recent / deadline / follow-up / amount, open-pipeline total.
+- Sidebar account card pinned to the bottom (opens account settings).
+- Touch targets are at least 40px on tablets/phones; filter chips scroll sideways on phones.
+
 ## Prerequisites
 
 - Node.js 18+

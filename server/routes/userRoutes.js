@@ -46,6 +46,21 @@ router.put("/profile", async (req, res, next) => {
   }
 });
 
+/* PUT /api/users/goal - set the monthly earnings goal (0 clears it) */
+router.put("/goal", async (req, res, next) => {
+  try {
+    const goal = Number(req.body.monthlyGoal);
+    if (!Number.isFinite(goal) || goal < 0 || goal > 100000000) {
+      return res.status(400).json({ message: "Enter a goal between 0 and 100,000,000." });
+    }
+    req.user.monthlyGoal = Math.round(goal);
+    await req.user.save();
+    res.json({ user: req.user.toSafeObject() });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /* PUT /api/users/password - set or change password
    Accounts with no password yet (e.g. Google sign-ups that never set one)
    can set their first password with just newPassword - no currentPassword

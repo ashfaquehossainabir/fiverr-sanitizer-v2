@@ -1,32 +1,57 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { sanitizeText } from "../lib/sanitizer.js";
 import { getGrammarSuggestions } from "../lib/grammarSuggestions.js";
-import { getReservedWarnings } from "../lib/utility/reservedWarnings.js";
+import { getPhoneWarnings, getReservedWarnings } from "../lib/utility/reservedWarnings.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { formatReadTime, getMessageStats, getToneChecks } from "../lib/messageStats.js";
+import { useToast } from "../context/ToastContext.jsx";
+import TemplatePicker from "./TemplatePicker.jsx";
+import { IconPaste, IconTemplate, IconSave } from "./icons.jsx";
+import { MOD } from "../lib/platform.js";
 
 const URL_REGEX = /\bhttps?:\/\/[^\s]+/gi;
 const CHAR_LIMIT = 2500;
-const DRAFT_KEY = "sanitizer_draft";
+// Drafts are stored per account so a shared browser never shows one user's text to the next.
+const draftKeyFor = (user) => `sanitizer_draft_${user?.id || user?._id || "anon"}`;
+const SPEECH_SUPPORTED =
+  typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
 
 // User text is injected into the preview as HTML (so matches can be
 // highlighted). Escape it first so pasted markup is shown, never executed.
 const escapeHtml = (text) =>
   String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function readDraft() {
+function readDraft(key) {
   try {
-    return localStorage.getItem(DRAFT_KEY) || "";
+    return localStorage.getItem(key) || "";
   } catch {
     return "";
   }
 }
 
-export default function Editor({ onSaveMessage, saving, loadedText, clients = [] }) {
+export default function Editor({
+  onSaveMessage,
+  saving,
+  loadedText,
+  insertRequest,
+  clients = [],
+  templates = [],
+  onTemplateUsed,
+  onManageTemplates
+}) {
+  const { notify } = useToast();
+  const { user } = useAuth();
+  const draftKey = draftKeyFor(user);
+  const translateReq = useRef(0);
+  const [translating, setTranslating] = useState(false);
+  const textareaRef = useRef(null);
+  const lastInsertId = useRef(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  const [input, setInput] = useState(readDraft);
-  const [debouncedInput, setDebouncedInput] = useState(readDraft);
+  const [input, setInput] = useState(() => readDraft(draftKey));
+  const [debouncedInput, setDebouncedInput] = useState(() => readDraft(draftKey));
   const [selectedClient, setSelectedClient] = useState("");
   const [previousText, setPreviousText] = useState(null);
 
@@ -37,7 +62,6 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
   const [reservedWarnings, setReservedWarnings] = useState([]);
 
   const [copied, setCopied] = useState(false);
-  const [copySuccess, setCopySuccess] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   /* -------------------- DEBOUNCE -------------------- */
@@ -49,12 +73,19 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
   /* Autosave the draft so a refresh or accidental tab close never loses work. */
   useEffect(() => {
     try {
-      if (input) localStorage.setItem(DRAFT_KEY, input);
-      else localStorage.removeItem(DRAFT_KEY);
+      if (input) localStorage.setItem(draftKey, input);
+      else localStorage.removeItem(draftKey);
+      localStorage.removeItem("sanitizer_draft"); // legacy shared key from older versions
     } catch {
       /* storage unavailable - drafts just won't persist */
     }
-  }, [input]);
+  }, [input, draftKey]);
+
+  /* A client that was completed/archived (or deleted) since being picked is no
+     longer in the list: unlink it so the message is not saved against it. */
+  useEffect(() => {
+    if (selectedClient && !clients.some((c) => c._id === selectedClient)) setSelectedClient("");
+  }, [clients, selectedClient]);
 
   /* A template sent from the Templates view replaces the editor text. The
      previous text is kept so the swap can be undone with one click. */
@@ -67,6 +98,61 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
     setTranslatedText("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedText?.id]);
+
+  /* Drops text at the caret (or replaces the selection). When the caret is at
+     the very end of an existing draft the new text starts on its own paragraph. */
+  const insertAtCursor = (text) => {
+    const el = textareaRef.current;
+    let start = el ? el.selectionStart : input.length;
+    let end = el ? el.selectionEnd : input.length;
+    start = Math.min(start ?? input.length, input.length);
+    end = Math.min(end ?? input.length, input.length);
+    const needsGap = input.trim() && start === input.length && end === input.length;
+    const chunk = `${needsGap ? "\n\n" : ""}${text}`;
+    const next = input.slice(0, start) + chunk + input.slice(end);
+    setInput(next);
+    setDebouncedInput(next);
+    setIsTranslated(false);
+    setTranslatedText("");
+    const caret = start + chunk.length;
+    requestAnimationFrame(() => {
+      const node = textareaRef.current;
+      if (node) {
+        node.focus();
+        node.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
+  /* A template picked from the command palette arrives as an insert request. */
+  useEffect(() => {
+    if (!insertRequest?.id || lastInsertId.current === insertRequest.id) return;
+    lastInsertId.current = insertRequest.id;
+    insertAtCursor(insertRequest.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insertRequest?.id]);
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        notify("Your clipboard is empty.", { tone: "error" });
+        return;
+      }
+      insertAtCursor(text);
+    } catch {
+      notify("Could not read the clipboard. Allow access or paste with " + MOD + "+V.", { tone: "error", duration: 4000 });
+    }
+  };
+
+  const handlePickTemplate = (text, template) => {
+    setPickerOpen(false);
+    insertAtCursor(text);
+    onTemplateUsed?.(template._id);
+    notify(`Inserted “${template.title}”`);
+  };
+
+  const closePicker = useCallback(() => setPickerOpen(false), []);
 
   const normalizedInput = debouncedInput.trimStart();
   const hasRealText = normalizedInput.trim().length > 0;
@@ -81,6 +167,9 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
     ? sanitized.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const isLimitExceeded = charCount > CHAR_LIMIT;
+  const limitPct = Math.min(100, Math.round((charCount / CHAR_LIMIT) * 100));
+  const limitTone = isLimitExceeded ? "over" : limitPct >= 80 ? "near" : "ok";
+  const selectedClientObj = clients.find((c) => c._id === selectedClient) || null;
 
   const hasWarnings = reservedWarnings.length > 0 || emailRemoved;
   const stats = hasRealCharacter ? getMessageStats(sanitized) : null;
@@ -100,11 +189,17 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
       return;
     }
     const textWithoutUrls = normalizedInput.replace(URL_REGEX, "");
-    setReservedWarnings(getReservedWarnings(textWithoutUrls));
+    setReservedWarnings([...getReservedWarnings(textWithoutUrls), ...getPhoneWarnings(textWithoutUrls)]);
   }, [debouncedInput]);
 
+  /* Changing the text stops any reading in progress and resets the buttons. */
   useEffect(() => {
-    return () => window.speechSynthesis.cancel();
+    return () => {
+      if (!SPEECH_SUPPORTED) return;
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setIsPaused(false);
+    };
   }, [sanitized]);
 
   const applyGrammarFix = (fixedText) => {
@@ -125,44 +220,60 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
   };
 
   const copyText = async () => {
-    if (!hasRealText) return;
-    await navigator.clipboard.writeText(sanitized);
+    if (!hasRealText) return false;
+    try {
+      await navigator.clipboard.writeText(sanitized);
+    } catch {
+      notify("Copy failed. Select the preview text and copy it manually.", { tone: "error", duration: 4000 });
+      return false;
+    }
     setCopied(true);
-    setCopySuccess(true);
-    setTimeout(() => {
-      setCopied(false);
-      setCopySuccess(false);
-    }, 2000);
+    notify("Sanitized text copied");
+    setTimeout(() => setCopied(false), 2000);
+    return true;
   };
 
   const translateToBengali = async () => {
-    if (!sanitized.trim()) return;
+    // Second click flips back to the English preview.
+    if (isTranslated) {
+      setIsTranslated(false);
+      return;
+    }
+    if (!sanitized.trim() || translating) return;
+    const requestId = ++translateReq.current;
+    setTranslating(true);
     try {
       const res = await fetch(
         `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=bn&dt=t&q=${encodeURIComponent(
           sanitized
         )}`
       );
+      if (!res.ok) throw new Error("bad response");
       const data = await res.json();
-      const translated = data[0].map((item) => item[0]).join("");
+      const translated = data[0].map((item) => item?.[0] || "").join("");
+      if (requestId !== translateReq.current) return; // text changed while waiting
       setTranslatedText(translated);
       setIsTranslated(true);
     } catch {
-      alert("Translation failed. Please try again.");
+      if (requestId === translateReq.current) notify("Translation failed. Please try again.", { tone: "error" });
+    } finally {
+      if (requestId === translateReq.current) setTranslating(false);
     }
   };
 
   const startReading = () => {
-    if (!sanitized.trim()) return;
+    if (!sanitized.trim() || !SPEECH_SUPPORTED) return;
     window.speechSynthesis.cancel();
     const speech = new SpeechSynthesisUtterance(sanitized);
     speech.lang = "en-US";
     speech.rate = 1;
     speech.pitch = 1;
-    speech.onend = () => {
+    const finish = () => {
       setIsSpeaking(false);
       setIsPaused(false);
     };
+    speech.onend = finish;
+    speech.onerror = finish;
     setIsSpeaking(true);
     setIsPaused(false);
     window.speechSynthesis.speak(speech);
@@ -185,6 +296,14 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
   };
 
   const highlightSanitized = (text) => {
+    // URLs are shown as typed: never mark the underscores/digits inside a link.
+    return text
+      .split(/(\bhttps?:\/\/[^\s]+)/gi)
+      .map((part, i) => (i % 2 === 1 ? escapeHtml(part) : highlightPlain(part)))
+      .join("");
+  };
+
+  const highlightPlain = (text) => {
     let highlightedText = escapeHtml(text);
 
     grammarSuggestions.forEach((item) => {
@@ -213,23 +332,36 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
   };
 
   const handleSave = async () => {
-    if (!hasRealText || !onSaveMessage) return;
+    if (!hasRealText || !onSaveMessage) return false;
     try {
       await onSaveMessage({ originalText: input, sanitizedText: sanitized, client: selectedClient || null });
       setSaveSuccess(true);
+      notify("Saved to tab");
       setTimeout(() => setSaveSuccess(false), 2000);
+      return true;
     } catch {
       // parent surfaces the error
+      return false;
     }
   };
 
-  /* Shortcuts: Ctrl/Cmd+Enter copies the sanitized text, Ctrl/Cmd+S saves it. */
+  /* One click: copy the clean text and keep a record of it. */
+  const handleCopyAndSave = async () => {
+    if (!hasRealText) return;
+    const ok = await copyText();
+    if (ok) await handleSave();
+  };
+
+  /* Shortcuts: Ctrl/Cmd+Enter copies, Ctrl/Cmd+Shift+Enter copies and saves, Ctrl/Cmd+S saves. */
   useEffect(() => {
     const onKey = (e) => {
       if (!(e.ctrlKey || e.metaKey)) return;
+      // Don't copy/save behind an open dialog (account, confirm, palette...).
+      if (document.querySelector(".confirm-backdrop, .palette-backdrop, .view-message-backdrop, .modal-backdrop")) return;
       if (e.key === "Enter") {
         e.preventDefault();
-        copyText();
+        if (e.shiftKey) handleCopyAndSave();
+        else copyText();
       } else if (e.key.toLowerCase() === "s") {
         e.preventDefault();
         if (!saving) handleSave();
@@ -245,17 +377,46 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
         {/* INPUT COLUMN */}
         <div className="editor-column">
           <div className="input-header">
-            <label>Input Text</label>
-            {input && (
-              <button type="button" className="clear-btn" onClick={clearText}>
-                Clear
+            <label htmlFor="editor-input">Input Text</label>
+            <div className="input-tools">
+              <button type="button" className="tool-btn" onClick={pasteFromClipboard} title="Paste from clipboard">
+                <IconPaste size={15} /> <span>Paste</span>
               </button>
-            )}
+              <div className="tpl-wrap">
+                <button
+                  type="button"
+                  className={`tool-btn ${pickerOpen ? "active" : ""}`}
+                  onClick={() => setPickerOpen((v) => !v)}
+                  aria-haspopup="dialog"
+                  aria-expanded={pickerOpen}
+                  title="Insert a template"
+                >
+                  <IconTemplate size={15} /> <span>Templates</span>
+                </button>
+                {pickerOpen && (
+                  <TemplatePicker
+                    templates={templates}
+                    client={selectedClientObj}
+                    onInsert={handlePickTemplate}
+                    onClose={closePicker}
+                    onManage={() => {
+                      setPickerOpen(false);
+                      onManageTemplates?.();
+                    }}
+                  />
+                )}
+              </div>
+              {input && (
+                <button type="button" className="clear-btn" onClick={clearText}>
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
 
           {previousText && (
             <div className="undo-banner">
-              <span>Template loaded.</span>
+              <span>{loadedText?.label || "Template loaded."}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -270,18 +431,36 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
           )}
 
           <textarea
+            id="editor-input"
+            ref={textareaRef}
             placeholder="Type your Fiverr message here..."
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
               setIsTranslated(false);
               setTranslatedText("");
+              translateReq.current += 1;
+              setTranslating(false);
             }}
           />
 
           <div className={`counter ${isLimitExceeded ? "counter-error" : ""}`}>
-            Words: {wordCount} | Characters: {charCount}
+            <span>Words: {wordCount} | Characters: {charCount}</span>
+            <span className="counter-limit">{charCount.toLocaleString()} / {CHAR_LIMIT.toLocaleString()}</span>
           </div>
+          <div
+            className={`limit-meter limit-${limitTone}`}
+            role="progressbar"
+            aria-label="Character limit used"
+            aria-valuemin={0}
+            aria-valuemax={CHAR_LIMIT}
+            aria-valuenow={Math.min(charCount, CHAR_LIMIT)}
+          >
+            <span style={{ width: `${limitPct}%` }} />
+          </div>
+          {isLimitExceeded && (
+            <p className="limit-note">Over the {CHAR_LIMIT.toLocaleString()}-character limit by {(charCount - CHAR_LIMIT).toLocaleString()}. Shorten it before sending.</p>
+          )}
 
         </div>
 
@@ -290,10 +469,11 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
           <div className="preview-header">
             <label>Sanitized Preview</label>
             <div className="preview-actions">
-              <button className="translate-btn" disabled={!hasRealText} onClick={translateToBengali}>
-                Translate
+              <button className="translate-btn" disabled={!hasRealText || translating} onClick={translateToBengali}>
+                {translating ? "Translating…" : isTranslated ? "Show English" : "Translate"}
               </button>
 
+              {SPEECH_SUPPORTED && (
               <button
                 className={`read-btn ${isSpeaking ? "speaking" : ""}`}
                 disabled={!hasRealText}
@@ -307,8 +487,9 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
                 {isSpeaking && !isPaused && "Pause"}
                 {isSpeaking && isPaused && "Resume"}
               </button>
+              )}
 
-              {isSpeaking && (
+              {SPEECH_SUPPORTED && isSpeaking && (
                 <button className="stop-btn" onClick={stopReading}>
                   Stop
                 </button>
@@ -345,14 +526,26 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
             </label>
           )}
 
-          <button
-            type="button"
-            className={`save-tab-btn ${saveSuccess ? "saved" : ""}`}
-            disabled={!hasRealText || saving}
-            onClick={handleSave}
-          >
-            {saving ? "Saving..." : saveSuccess ? "Saved to tab ✓" : "Save to Tab"}
-          </button>
+          <div className="save-actions">
+            <button
+              type="button"
+              className={`save-tab-btn ${saveSuccess ? "saved" : ""}`}
+              disabled={!hasRealText || saving}
+              onClick={handleSave}
+            >
+              <IconSave size={16} />
+              {saving ? "Saving..." : saveSuccess ? "Saved to tab ✓" : "Save to Tab"}
+            </button>
+            <button
+              type="button"
+              className="copy-save-btn"
+              disabled={!hasRealText || saving}
+              onClick={handleCopyAndSave}
+              title={`Copy and save (${MOD}+Shift+Enter)`}
+            >
+              Copy &amp; Save
+            </button>
+          </div>
         </div>
       </div>
 
@@ -401,7 +594,7 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
                   </li>
                 )}
               </ul>
-              <p className="quality-hint">Tip: Ctrl/Cmd + Enter copies · Ctrl/Cmd + S saves to the tab.</p>
+              <p className="quality-hint">Tip: {MOD}+Enter copies · {MOD}+S saves · {MOD}+Shift+Enter does both.</p>
             </div>
           )}
             </div>
@@ -415,8 +608,15 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
               {grammarSuggestions.map((item, index) => (
                 <div key={index} className="grammar-item">
                   <span>{item.message}</span>
-                  <button className="apply-btn" onClick={() => applyGrammarFix(item.fixedText)}>
-                    Apply
+                  <button
+                    className="apply-btn"
+                    onClick={() =>
+                      item.dismissOnly
+                        ? setGrammarSuggestions((list) => list.filter((x) => x !== item))
+                        : applyGrammarFix(item.fixedText)
+                    }
+                  >
+                    {item.dismissOnly ? "Dismiss" : "Apply"}
                   </button>
                 </div>
               ))}
@@ -425,7 +625,6 @@ export default function Editor({ onSaveMessage, saving, loadedText, clients = []
         </div>
       )}
 
-      {copySuccess && <div className="copy-toast">✔ Text copied to clipboard</div>}
     </div>
   );
 }

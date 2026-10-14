@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios.js";
 import ConfirmModal from "./ConfirmModal.jsx";
 import Loader from "./Loader.jsx";
+import useEscape from "../hooks/useEscape.js";
 import { extractVariables, fillTemplate, STARTER_TEMPLATES } from "../lib/templateVars.js";
 
 const EMPTY = { title: "", category: "General", body: "" };
@@ -15,6 +16,10 @@ export default function Templates({ onUseTemplate, onError }) {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
+  useEscape(() => {
+    setForm(null);
+    setFilling(null);
+  }, Boolean(form || filling));
 
   useEffect(() => {
     let cancelled = false;
@@ -68,15 +73,17 @@ export default function Templates({ onUseTemplate, onError }) {
   };
 
   const addStarters = async () => {
+    const created = [];
     try {
-      const created = [];
       for (const t of STARTER_TEMPLATES) {
         const { data } = await api.post("/templates", t);
         created.push(data.template);
       }
-      setTemplates((prev) => [...created, ...prev]);
     } catch (err) {
       onError?.(err.response?.data?.message || "Could not add starter templates.");
+    } finally {
+      // Show whatever was created, even if a later request failed.
+      if (created.length) setTemplates((prev) => [...created, ...prev]);
     }
   };
 

@@ -2,6 +2,8 @@ import { useState } from "react";
 import ConfirmModal from "./ConfirmModal.jsx";
 import ViewMessageModal from "./ViewMessageModal.jsx";
 import Loader from "./Loader.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+import { IconReuse, IconDownload } from "./icons.jsx";
 
 
 const iconProps = {
@@ -64,17 +66,40 @@ function formatDate(dateStr) {
   });
 }
 
-export default function SavedMessages({ messages, loading, onDelete, onTogglePin, clientNames = {} }) {
+export default function SavedMessages({ messages, loading, onDelete, onTogglePin, onReuse, tabName = "", clientNames = {} }) {
+  const { notify } = useToast();
   const [query, setQuery] = useState("");
+  const [onlyPinned, setOnlyPinned] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [viewingMessage, setViewingMessage] = useState(null);
   const [messagePendingDelete, setMessagePendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   const handleCopy = async (id, text) => {
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      notify("Copy failed. Open the message and copy it manually.", { tone: "error", duration: 4000 });
+      return;
+    }
     setCopiedId(id);
+    notify("Message copied");
     setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  /* Download everything in this tab as a plain-text file (newest first). */
+  const exportTab = () => {
+    const body = messages
+      .map((m) => `[${new Date(m.createdAt).toLocaleString()}]${m.pinned ? " (pinned)" : ""}\n${m.sanitizedText}`)
+      .join("\n\n----------------------------------------\n\n");
+    const blob = new Blob([`${tabName || "Saved messages"}\n\n${body}\n`], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(tabName || "messages").replace(/[^\w-]+/g, "-").toLowerCase()}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify(`Exported ${messages.length} message${messages.length === 1 ? "" : "s"}`);
   };
 
   const confirmDelete = async () => {
@@ -106,23 +131,47 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
   }
 
   const q = query.trim().toLowerCase();
-  const visible = q
-    ? messages.filter((m) => `${m.sanitizedText} ${clientNames[m.client] || ""}`.toLowerCase().includes(q))
-    : messages;
+  const pinnedCount = messages.filter((m) => m.pinned).length;
+  const visible = messages.filter(
+    (m) =>
+      (!onlyPinned || m.pinned) &&
+      (!q || `${m.sanitizedText} ${clientNames[m.client] || ""}`.toLowerCase().includes(q))
+  );
 
   return (
     <div className="saved-messages-list">
-      {messages.length > 3 && (
-        <input
-          className="panel-search saved-search"
-          type="search"
-          placeholder="Search messages in this tab…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      )}
+      <div className="saved-toolbar">
+        {messages.length > 3 && (
+          <input
+            className="panel-search saved-search"
+            type="search"
+            placeholder="Search messages in this tab…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        )}
+        <div className="saved-toolbar-right">
+          {pinnedCount > 0 && (
+            <button
+              type="button"
+              className={`chip ${onlyPinned ? "chip-active" : ""}`}
+              onClick={() => setOnlyPinned((v) => !v)}
+              aria-pressed={onlyPinned}
+            >
+              Pinned · {pinnedCount}
+            </button>
+          )}
+          <button type="button" className="tool-btn" onClick={exportTab} title="Download this tab as a .txt file">
+            <IconDownload size={15} /> <span>Export</span>
+          </button>
+        </div>
+      </div>
 
-      {visible.length === 0 && <div className="saved-messages-empty">No saved messages match “{query}”.</div>}
+      {visible.length === 0 && (
+        <div className="saved-messages-empty">
+          {onlyPinned && !q ? "No pinned messages in this tab." : <>No saved messages match “{query}”.</>}
+        </div>
+      )}
 
       {visible.map((msg) => {
         const clientName = msg.client && clientNames[msg.client];
@@ -157,6 +206,17 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
               </div>
 
               <div className="sm-actions">
+                {onReuse && (
+                  <button
+                    type="button"
+                    className="sm-icon-btn"
+                    onClick={() => onReuse(msg.sanitizedText)}
+                    title="Use again in the editor"
+                    aria-label="Use this message again in the editor"
+                  >
+                    <IconReuse size={16} />
+                  </button>
+                )}
                 <button
                   type="button"
                   className="sm-icon-btn"

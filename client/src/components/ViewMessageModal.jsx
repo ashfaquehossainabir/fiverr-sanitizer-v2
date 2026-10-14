@@ -1,4 +1,5 @@
 import { useState } from "react";
+import useEscape from "../hooks/useEscape.js";
 
 function formatDate(dateStr) {
   const d = new Date(dateStr);
@@ -14,8 +15,14 @@ function formatDate(dateStr) {
 export default function ViewMessageModal({ message, onClose }) {
   const [copied, setCopied] = useState(false);
 
+  useEscape(onClose);
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.sanitizedText);
+    try {
+      await navigator.clipboard.writeText(message.sanitizedText);
+    } catch {
+      return; // clipboard blocked: the text is selectable in the modal
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };

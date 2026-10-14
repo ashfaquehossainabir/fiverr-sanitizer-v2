@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
+import { IconSearch, IconKeyboard } from "./icons.jsx";
+import { MOD } from "../lib/platform.js";
 
 function getInitials(name) {
   if (!name) return "?";
@@ -9,7 +11,7 @@ function getInitials(name) {
   return initials.join("") || "?";
 }
 
-export default function TopBar({ title, subtitle, onMenuClick, onAvatarClick }) {
+export default function TopBar({ title, subtitle, onMenuClick, onAvatarClick, onOpenPalette, onOpenShortcuts }) {
   const { user, isAdmin } = useAuth();
 
   return (
@@ -28,12 +30,22 @@ export default function TopBar({ title, subtitle, onMenuClick, onAvatarClick }) 
         )}
       </div>
 
+      <button type="button" className="topbar-search" onClick={onOpenPalette} aria-label="Open command palette">
+        <IconSearch size={16} />
+        <span className="topbar-search-text">Search or jump to…</span>
+        <kbd>{MOD} K</kbd>
+      </button>
+
       <div className="topbar-right">
         {isAdmin && (
           <Link to="/admin" className="admin-pill-link" title="Admin Dashboard">
             Admin
           </Link>
         )}
+
+        <button type="button" className="icon-btn topbar-shortcuts" onClick={onOpenShortcuts} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
+          <IconKeyboard size={18} />
+        </button>
 
         <ThemeToggle />
 

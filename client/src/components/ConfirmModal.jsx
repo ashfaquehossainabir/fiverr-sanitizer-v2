@@ -1,3 +1,5 @@
+import useEscape from "../hooks/useEscape.js";
+
 export default function ConfirmModal({
   title,
   message,
@@ -8,6 +10,8 @@ export default function ConfirmModal({
   onConfirm,
   onCancel
 }) {
+  useEscape(onCancel, !loading);
+
   return (
     <div className="confirm-backdrop" onClick={onCancel}>
       <div
@@ -28,7 +32,8 @@ export default function ConfirmModal({
         {message && <p className="confirm-modal-message">{message}</p>}
 
         <div className="confirm-modal-actions">
-          <button type="button" className="cancel-btn" onClick={onCancel} disabled={loading}>
+          {/* Destructive dialogs focus Cancel so a stray Enter never deletes anything. */}
+          <button type="button" className="cancel-btn" onClick={onCancel} disabled={loading} autoFocus={variant === "danger"}>
             {cancelLabel}
           </button>
           <button
@@ -36,7 +41,7 @@ export default function ConfirmModal({
             className={`confirm-btn ${variant === "danger" ? "danger" : ""}`}
             onClick={onConfirm}
             disabled={loading}
-            autoFocus
+            autoFocus={variant !== "danger"}
           >
             {loading ? "Please wait..." : confirmLabel}
           </button>

@@ -10,16 +10,22 @@ import Clients from "../components/Clients.jsx";
 import Templates from "../components/Templates.jsx";
 import SearchView from "../components/SearchView.jsx";
 import Loader from "../components/Loader.jsx";
+import BottomNav from "../components/BottomNav.jsx";
+import CommandPalette from "../components/CommandPalette.jsx";
+import ShortcutsModal from "../components/ShortcutsModal.jsx";
+import TodayStrip from "../components/TodayStrip.jsx";
+import { IconEdit, IconChart, IconUsers, IconQuote, IconSearch, IconHash, IconSun, IconUser, IconKeyboard } from "../components/icons.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+import { fillTemplate } from "../lib/templateVars.js";
+import { isTypingTarget } from "../lib/platform.js";
+import { daysUntil } from "../lib/dates.js";
 
 const CLOSED = ["completed", "archived"];
 
-const endOfToday = () => {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.getTime();
-};
-
 export default function Dashboard() {
+  const { theme, toggle: toggleTheme } = useTheme();
+  const { notify } = useToast();
   const [view, setView] = useState("workspace");
 
   const [tabs, setTabs] = useState([]);
@@ -32,6 +38,11 @@ export default function Dashboard() {
 
   const [clients, setClients] = useState([]);
   const [loadedText, setLoadedText] = useState(null);
+  const [insertRequest, setInsertRequest] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [searchSeed, setSearchSeed] = useState({ id: 0, q: "" });
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -74,6 +85,26 @@ export default function Dashboard() {
   useEffect(() => {
     loadClients();
   }, [loadClients]);
+
+  const loadTemplates = useCallback(async () => {
+    try {
+      const { data } = await api.get("/templates");
+      setTemplates(data.templates);
+    } catch {
+      /* the picker simply shows no templates; the Templates view reports its own errors */
+    }
+  }, []);
+
+  // Refresh whenever the user changes page so edits made in the Templates view
+  // are available in the editor's quick-insert straight away.
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates, view]);
+
+  // New page, start at the top (matters on phones, where the page scrolls).
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [view]);
 
   const handleClientsChanged = useCallback(() => {
     loadClients();
@@ -123,13 +154,10 @@ export default function Dashboard() {
   const handleDeleteTab = async (tabId) => {
     try {
       await api.delete(`/tabs/${tabId}`);
-      setTabs((prev) => {
-        const next = prev.filter((t) => t._id !== tabId);
-        if (activeTabId === tabId) {
-          setActiveTabId(next.length > 0 ? next[0]._id : null);
-        }
-        return next;
-      });
+      // No state updates inside another setter's callback (they run twice in StrictMode).
+      const next = tabs.filter((t) => t._id !== tabId);
+      setTabs(next);
+      if (activeTabId === tabId) setActiveTabId(next.length > 0 ? next[0]._id : null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setErrorBanner(err.response?.data?.message || "Could not delete the tab.");
@@ -148,7 +176,12 @@ export default function Dashboard() {
         sanitizedText,
         client
       });
-      setMessages((prev) => [data.message, ...prev]);
+      // Keep the server's order: pinned messages first, then newest.
+      setMessages((prev) =>
+        [data.message, ...prev].sort(
+          (a, b) => Number(b.pinned) - Number(a.pinned) || new Date(b.createdAt) - new Date(a.createdAt)
+        )
+      );
       setRefreshKey((k) => k + 1);
     } catch (err) {
       setErrorBanner(err.response?.data?.message || "Could not save this message.");
@@ -191,6 +224,35 @@ export default function Dashboard() {
     setView("workspace");
   };
 
+  const handleReuseMessage = (text) => {
+    setLoadedText({ id: Date.now(), text, label: "Saved message loaded." });
+    setView("workspace");
+  };
+
+  const handleTemplateUsed = useCallback(async (templateId) => {
+    try {
+      const { data } = await api.post(`/templates/${templateId}/use`);
+      setTemplates((prev) => prev.map((t) => (t._id === templateId ? data.template : t)));
+    } catch {
+      /* usage counter is best-effort */
+    }
+  }, []);
+
+  const insertTemplateFromPalette = useCallback(
+    (template) => {
+      setInsertRequest({ id: Date.now(), text: fillTemplate(template.body, {}) });
+      setView("workspace");
+      handleTemplateUsed(template._id);
+      notify(`Inserted “${template.title}”`);
+    },
+    [handleTemplateUsed, notify]
+  );
+
+  const openSearchFor = useCallback((q) => {
+    setSearchSeed({ id: Date.now(), q });
+    setView("search");
+  }, []);
+
   const openTabFromSearch = (tabId) => {
     setActiveTabId(tabId);
     setView("workspace");
@@ -203,12 +265,77 @@ export default function Dashboard() {
     [clients]
   );
   const linkableClients = useMemo(() => clients.filter((c) => !CLOSED.includes(c.status)), [clients]);
-  const followUpCount = useMemo(() => {
-    const limit = endOfToday();
-    return clients.filter(
-      (c) => c.followUpAt && !CLOSED.includes(c.status) && new Date(c.followUpAt).getTime() <= limit
-    ).length;
-  }, [clients]);
+  const followUpCount = useMemo(
+    () => clients.filter((c) => c.followUpAt && !CLOSED.includes(c.status) && daysUntil(c.followUpAt) <= 0).length,
+    [clients]
+  );
+
+  /* Ctrl/Cmd+K opens the palette from anywhere; "?" opens the shortcut list. */
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+        return;
+      }
+      if (e.key === "?" && !e.ctrlKey && !e.metaKey && !isTypingTarget(document.activeElement)) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const paletteItems = useMemo(() => {
+    const go = (id, label, hint, Icon) => ({
+      id: `go-${id}`,
+      group: "Go to",
+      label,
+      hint,
+      icon: <Icon size={16} />,
+      run: () => setView(id)
+    });
+    const byUse = [...templates].sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
+    return [
+      go("workspace", "Workspace", "Write and sanitize", IconEdit),
+      go("overview", "Overview", "Goals, stats, calculator", IconChart),
+      go("clients", "Clients & orders", "Deadlines and follow-ups", IconUsers),
+      go("templates", "Templates", "Quick replies", IconQuote),
+      go("search", "Search saved messages", "Across every tab", IconSearch),
+      ...tabs.map((t) => ({
+        id: `tab-${t._id}`,
+        group: "Tabs",
+        label: t.name,
+        hint: "Open tab",
+        keywords: "tab",
+        icon: <IconHash size={16} />,
+        run: () => {
+          setActiveTabId(t._id);
+          setView("workspace");
+        }
+      })),
+      ...byUse.map((t) => ({
+        id: `tpl-${t._id}`,
+        group: "Insert template",
+        label: t.title,
+        hint: t.category,
+        keywords: t.body,
+        icon: <IconQuote size={16} />,
+        run: () => insertTemplateFromPalette(t)
+      })),
+      {
+        id: "act-theme",
+        group: "Actions",
+        label: theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
+        keywords: "theme appearance dark light",
+        icon: <IconSun size={16} />,
+        run: toggleTheme
+      },
+      { id: "act-account", group: "Actions", label: "Account settings", icon: <IconUser size={16} />, run: () => setAccountOpen(true) },
+      { id: "act-keys", group: "Actions", label: "Keyboard shortcuts", hint: "?", icon: <IconKeyboard size={16} />, run: () => setShortcutsOpen(true) }
+    ];
+  }, [tabs, templates, theme, toggleTheme, insertTemplateFromPalette]);
 
   const HEADINGS = {
     workspace: ["Workspace", activeTab?.name || ""],
@@ -229,17 +356,25 @@ export default function Dashboard() {
     }
     return (
       <>
+        <TodayStrip clients={clients} onOpenClients={openClients} />
+
         <Editor
           onSaveMessage={handleSaveMessage}
           saving={saving}
           loadedText={loadedText}
+          insertRequest={insertRequest}
           clients={linkableClients}
+          templates={templates}
+          onTemplateUsed={handleTemplateUsed}
+          onManageTemplates={() => setView("templates")}
         />
 
         {tabs.length === 0 ? (
           <div className="dashboard-loading workspace-note">
-            Want to keep your sanitized messages? Use <strong>+ New Tab</strong> in the sidebar to
-            create your first tab. You can sanitize and copy without one.
+            <p>Want to keep your sanitized messages? Create a tab to save them in. You can sanitize and copy without one.</p>
+            <button type="button" className="btn-primary" onClick={() => handleCreateTab("General")}>
+              Create a “General” tab
+            </button>
           </div>
         ) : (
           <section className="saved-messages-section">
@@ -253,6 +388,8 @@ export default function Dashboard() {
               loading={messagesLoading}
               onDelete={handleDeleteMessage}
               onTogglePin={handleTogglePin}
+              onReuse={handleReuseMessage}
+              tabName={activeTab?.name || ""}
               clientNames={clientNames}
             />
           </section>
@@ -275,6 +412,7 @@ export default function Dashboard() {
         onDeleteTab={handleDeleteTab}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        onOpenAccount={() => setAccountOpen(true)}
       />
 
       <div className="dashboard-main">
@@ -283,6 +421,8 @@ export default function Dashboard() {
           subtitle={subtitle}
           onMenuClick={() => setSidebarOpen(true)}
           onAvatarClick={() => setAccountOpen(true)}
+          onOpenPalette={() => setPaletteOpen(true)}
+          onOpenShortcuts={() => setShortcutsOpen(true)}
         />
 
         <div className="dashboard-content">
@@ -299,11 +439,19 @@ export default function Dashboard() {
           )}
           {view === "clients" && <Clients onError={reportError} onChanged={handleClientsChanged} />}
           {view === "templates" && <Templates onUseTemplate={handleUseTemplate} onError={reportError} />}
-          {view === "search" && <SearchView onOpenTab={openTabFromSearch} onError={reportError} />}
+          {view === "search" && (
+            <SearchView key={searchSeed.id} initialQuery={searchSeed.q} onOpenTab={openTabFromSearch} onError={reportError} />
+          )}
         </div>
       </div>
 
+      <BottomNav view={view} onChangeView={setView} followUpCount={followUpCount} />
+
       {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
+      {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
+      {paletteOpen && (
+        <CommandPalette items={paletteItems} onClose={() => setPaletteOpen(false)} onSearch={openSearchFor} />
+      )}
     </div>
   );
 }

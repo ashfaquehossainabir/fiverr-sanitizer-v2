@@ -6,8 +6,8 @@ const fmt = (d) =>
   new Date(d).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
 // Search every saved message across all tabs, e.g. "what did I tell Anna about the deadline?"
-export default function SearchView({ onOpenTab, onError }) {
-  const [query, setQuery] = useState("");
+export default function SearchView({ onOpenTab, onError, initialQuery = "" }) {
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
