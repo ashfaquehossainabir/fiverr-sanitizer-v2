@@ -79,6 +79,15 @@
         50% { top: 100%; }
         100% { top: -10%; }
       }
+      /* dark mode: no black halo around the dark mark; use a hairline instead */
+      :root[data-theme="dark"] .il-mark {
+        box-shadow: none;
+        border: 1px solid #3B3B42;
+        background: #0A0A0B;
+      }
+      :root[data-theme="dark"] .il-label {
+        color: #A9A9B2;
+      }
       .il-label {
         display: inline-flex;
         align-items: center;

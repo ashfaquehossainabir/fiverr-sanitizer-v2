@@ -2659,13 +2659,25 @@ textarea:focus {
     margin-left: 0;
   }
 
+  /* Closed drawer: no shadow at all (a blurred shadow on an off-screen panel
+     bleeds back into the left edge of the viewport), and hidden from
+     pointer/keyboard once the slide-out finishes. */
   .sidebar {
     transform: translateX(-100%);
-    box-shadow: var(--shadow-lg);
+    box-shadow: none;
+    visibility: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, visibility 0s linear 0.25s;
   }
 
   .sidebar.sidebar-open {
     transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+    visibility: visible;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, visibility 0s;
+  }
+
+  :root[data-theme="dark"] .sidebar.sidebar-open {
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
   }
 
   .sidebar-close {
@@ -4005,6 +4017,13 @@ textarea:focus {
 
 :root[data-theme="dark"] #initial-loader {
   background: #0F0F11;
+}
+
+/* Loader logo: a dark mark on a dark page gets a muddy black halo from the
+   drop shadow. Drop the shadow in dark mode and use a crisp hairline instead. */
+:root[data-theme="dark"] .loader-mark {
+  box-shadow: none;
+  border: 1px solid var(--color-border-strong);
 }
 
 
