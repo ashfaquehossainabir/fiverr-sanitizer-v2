@@ -7,6 +7,7 @@ const GROUPS = [
     rows: [
       [[MOD, "K"], "Open the command palette"],
       [["?"], "Show this list"],
+      [["N"], "Add a task in the Planner"],
       [["Esc"], "Close dialogs and menus"]
     ]
   },

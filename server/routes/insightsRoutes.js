@@ -3,6 +3,7 @@ import Message from "../models/Message.js";
 import Tab from "../models/Tab.js";
 import Template from "../models/Template.js";
 import Client from "../models/Client.js";
+import Task from "../models/Task.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -109,14 +110,15 @@ router.get("/search", async (req, res, next) => {
 router.get("/export", async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const [tabs, messages, templates, clients] = await Promise.all([
+    const [tabs, messages, templates, clients, tasks] = await Promise.all([
       Tab.find({ user: userId }).lean(),
       Message.find({ user: userId }).lean(),
       Template.find({ user: userId }).lean(),
-      Client.find({ user: userId }).lean()
+      Client.find({ user: userId }).lean(),
+      Task.find({ user: userId }).lean()
     ]);
     res.setHeader("Content-Disposition", 'attachment; filename="sanitizer-backup.json"');
-    res.json({ exportedAt: new Date().toISOString(), tabs, messages, templates, clients });
+    res.json({ exportedAt: new Date().toISOString(), tabs, messages, templates, clients, tasks });
   } catch (err) {
     next(err);
   }

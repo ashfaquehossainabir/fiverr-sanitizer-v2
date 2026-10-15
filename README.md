@@ -80,6 +80,20 @@ New/changed API: `PUT /api/users/goal`; clients get `completedAt`; `/api/insight
 - Sidebar account card pinned to the bottom (opens account settings).
 - Touch targets are at least 40px on tablets/phones; filter chips scroll sideways on phones.
 
+## v9.7 — Planner, focus timer & client clocks
+
+- **Planner** (new page, sidebar + phone bottom nav): a to-do list built for freelance days. Quick-add with *Today / Tomorrow / Next week* chips, a date picker, priority (low / normal / high) and an optional client link. Tasks are grouped into **Overdue, Today, Upcoming and No date**, with inline edit, a *Completed* drawer and *Clear completed*. A daily progress bar shows how much of today's list is done.
+- **7-day strip**: see how many tasks and client deadlines/follow-ups land on each day; tap a day to focus the list on it.
+- **Client radar**: deadlines and follow-ups of your open orders for the next 7 days, next to your tasks.
+- **Focus timer** (Pomodoro): 15/3, 25/5 or 50/10 presets, pick the task you are working on, and every finished session is counted on that task. It keeps running while you move between pages (a floating timer pill follows you), survives a refresh, shows the countdown in the browser tab title and plays a soft chime when a session ends.
+- **Client time zones**: set a buyer's time zone on the client form; their card shows the local time there and whether it is a considerate hour to reply.
+- **Today strip** gains a *Tasks due* chip; the sidebar and bottom nav show a badge for tasks due today or overdue.
+- **Shortcuts**: press **N** anywhere to add a task; the command palette can add a task and start/pause the focus timer.
+- **Backup** (`/api/export`) now includes your tasks. Deleting a client keeps its tasks (just unlinked); deleting an account removes its tasks.
+- **Admin button** is an icon-only shield on tablet and phone widths.
+
+New/changed API: `GET/POST /api/tasks`, `PUT/DELETE /api/tasks/:id`, `DELETE /api/tasks/completed/all`; clients get a `timezone` field.
+
 ## Prerequisites
 
 - Node.js 18+
@@ -197,9 +211,10 @@ var, trigger a redeploy on Vercel (env var changes require a rebuild).
 fiverr-sanitizer-fullstack/
 ├── server/
 │   ├── config/db.js          MongoDB connection
-│   ├── models/               User, Tab, Message (Mongoose schemas)
+│   ├── models/               User, Tab, Message, Client, Template, Task, Settings (Mongoose schemas)
 │   ├── middleware/           JWT auth guard (+ admin guard), error handler
-│   ├── routes/                auth, users (settings), tabs (+ nested messages), admin
+│   ├── routes/                auth, users (settings), tabs (+ nested messages), admin,
+│   │                          clients, templates, tasks, insights/export/search
 │   ├── utils/generateToken.js, seedAdmin.js (creates/promotes the first admin)
 │   └── index.js               Express app entry point
 └── client/
@@ -209,7 +224,8 @@ fiverr-sanitizer-fullstack/
         ├── pages/             Login, Register, Dashboard, AdminDashboard
         ├── components/        Sidebar, TopBar, Editor, SavedMessages,
         │                      AccountModal, ProtectedRoute, AdminRoute,
-        │                      ResetPasswordModal
+        │                      ResetPasswordModal, Planner, FocusPill, Clients, ...
+        ├── hooks/             useTasks, useFocusTimer, useNow, useTheme, useEscape
         ├── lib/                original sanitizer/grammar/reserved-keyword
         │                      logic, ported unchanged from the source app
         └── styles/index.css    full design system + responsive layout

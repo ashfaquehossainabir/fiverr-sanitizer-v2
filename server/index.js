@@ -8,6 +8,7 @@ import tabRoutes from "./routes/tabRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
 import templateRoutes from "./routes/templateRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
 import insightsRoutes from "./routes/insightsRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
@@ -37,6 +38,7 @@ app.use("/api/tabs", tabRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/templates", templateRoutes);
+app.use("/api/tasks", taskRoutes);
 // insights, export and search live at /api/insights, /api/export, /api/search
 app.use("/api", insightsRoutes);
 

@@ -4,6 +4,9 @@ import ConfirmModal from "./ConfirmModal.jsx";
 import Loader from "./Loader.jsx";
 import useEscape from "../hooks/useEscape.js";
 import { daysUntil, fromInputDate, toInputDate } from "../lib/dates.js";
+import { ZONES, dayWord, localTimeInfo, zoneLabel } from "../lib/timezones.js";
+import useNow from "../hooks/useNow.js";
+import { IconGlobe } from "./icons.jsx";
 
 export const STATUSES = [
   { id: "lead", label: "Lead" },
@@ -14,7 +17,7 @@ export const STATUSES = [
   { id: "archived", label: "Archived" }
 ];
 
-const EMPTY = { name: "", project: "", status: "lead", amount: "", currency: "USD", deadline: "", followUpAt: "", notes: "" };
+const EMPTY = { name: "", project: "", status: "lead", amount: "", currency: "USD", deadline: "", followUpAt: "", notes: "", timezone: "" };
 
 const CLOSED = ["completed", "archived"];
 
@@ -49,6 +52,7 @@ export default function Clients({ onError, onChanged }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("recent");
   const [pendingDelete, setPendingDelete] = useState(null);
+  const now = useNow(30000);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +86,8 @@ export default function Clients({ onError, onChanged }) {
       currency: c.currency,
       deadline: toInputDate(c.deadline),
       followUpAt: toInputDate(c.followUpAt),
-      notes: c.notes
+      notes: c.notes,
+      timezone: c.timezone || ""
     });
   };
 
@@ -234,6 +239,19 @@ export default function Clients({ onError, onChanged }) {
                   {follow && <span className={`badge badge-${follow.tone}`}>Follow up {follow.text}</span>}
                 </div>
 
+                {(() => {
+                  const t = localTimeInfo(c.timezone, now);
+                  if (!t) return null;
+                  return (
+                    <p className={`client-clock ${t.awake ? "is-awake" : "is-asleep"}`} title={t.awake ? "A considerate hour to message" : "Probably outside their working hours"}>
+                      <IconGlobe size={14} />
+                      <strong>{t.time}</strong>
+                      <span>{dayWord(t.dayDiff) ? `${dayWord(t.dayDiff)} · ` : ""}{zoneLabel(c.timezone)}</span>
+                      <em>{t.awake ? "Good time to reply" : "Likely offline"}</em>
+                    </p>
+                  );
+                })()}
+
                 {c.notes && <p className="item-body">{c.notes}</p>}
 
                 <footer>
@@ -281,6 +299,13 @@ export default function Clients({ onError, onChanged }) {
                 <input type="date" value={form.followUpAt} onChange={(e) => setForm({ ...form, followUpAt: e.target.value })} />
               </label>
             </div>
+            <label>Their time zone
+              <select value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })}>
+                <option value="">Not set</option>
+                {form.timezone && !ZONES.some(([id]) => id === form.timezone) && <option value={form.timezone}>{zoneLabel(form.timezone)}</option>}
+                {ZONES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+            </label>
             <label>Notes
               <textarea rows={3} maxLength={2000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </label>

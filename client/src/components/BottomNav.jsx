@@ -1,16 +1,16 @@
-import { IconEdit, IconChart, IconUsers, IconQuote, IconSearch } from "./icons.jsx";
+import { IconEdit, IconChart, IconUsers, IconQuote, IconCalendar } from "./icons.jsx";
 
 const ITEMS = [
   { id: "workspace", label: "Write", Icon: IconEdit },
-  { id: "overview", label: "Overview", Icon: IconChart },
+  { id: "planner", label: "Planner", Icon: IconCalendar },
   { id: "clients", label: "Clients", Icon: IconUsers },
   { id: "templates", label: "Templates", Icon: IconQuote },
-  { id: "search", label: "Search", Icon: IconSearch }
+  { id: "overview", label: "Overview", Icon: IconChart }
 ];
 
 // Thumb-friendly navigation for phones and small tablets (hidden on desktop,
 // where the sidebar does this job).
-export default function BottomNav({ view, onChangeView, followUpCount = 0 }) {
+export default function BottomNav({ view, onChangeView, followUpCount = 0, taskCount = 0 }) {
   return (
     <nav className="bottom-nav" aria-label="Primary">
       {ITEMS.map(({ id, label, Icon }) => (
@@ -24,6 +24,7 @@ export default function BottomNav({ view, onChangeView, followUpCount = 0 }) {
           <span className="bottom-nav-icon">
             <Icon size={20} />
             {id === "clients" && followUpCount > 0 && <span className="bottom-nav-badge">{followUpCount}</span>}
+            {id === "planner" && taskCount > 0 && <span className="bottom-nav-badge">{taskCount}</span>}
           </span>
           <span>{label}</span>
         </button>

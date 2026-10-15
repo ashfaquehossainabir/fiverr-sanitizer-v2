@@ -1,5 +1,6 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { daysUntil } from "../lib/dates.js";
+import { openTaskCount } from "../lib/tasks.js";
 
 const CLOSED = ["completed", "archived"];
 
@@ -13,7 +14,7 @@ function greeting() {
 
 // "Today" summary shown above the editor: what needs attention right now, one tap
 // from the Clients view. Everything is derived from the clients already loaded.
-export default function TodayStrip({ clients, onOpenClients }) {
+export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenPlanner }) {
   const { user } = useAuth();
   const first = (user?.name || "").trim().split(/\s+/)[0] || "there";
 
@@ -23,9 +24,11 @@ export default function TodayStrip({ clients, onOpenClients }) {
   const dueSoon = open.filter((c) => c.deadline && daysUntil(c.deadline) >= 0 && daysUntil(c.deadline) <= 2).length;
 
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  const attention = followUps + overdue + dueSoon;
+  const tasksDue = openTaskCount(tasks);
+  const attention = followUps + overdue + dueSoon + tasksDue;
 
   const chips = [
+    { key: "tasks", value: tasksDue, label: "Tasks due", tone: tasksDue ? "warn" : "calm", onClick: onOpenPlanner },
     { key: "follow", value: followUps, label: "Follow-ups due", tone: followUps ? "warn" : "calm" },
     { key: "overdue", value: overdue, label: "Overdue", tone: overdue ? "danger" : "calm" },
     { key: "soon", value: dueSoon, label: "Due in 3 days", tone: dueSoon ? "warn" : "calm" },
@@ -40,18 +43,18 @@ export default function TodayStrip({ clients, onOpenClients }) {
           {greeting()}, {first}
         </h2>
         <p className="today-sub">
-          {clients.length === 0
-            ? "Add your first client to get follow-up and deadline reminders here."
+          {clients.length === 0 && tasks.length === 0
+            ? "Add your first client or task to get reminders here."
             : attention === 0
             ? "Nothing urgent today. A good moment to get ahead."
             : `${attention} thing${attention === 1 ? "" : "s"} need${attention === 1 ? "s" : ""} your attention.`}
         </p>
       </div>
 
-      {clients.length > 0 && (
+      {(clients.length > 0 || tasks.length > 0) && (
         <div className="today-chips">
           {chips.map((c) => (
-            <button key={c.key} type="button" className={`today-chip tone-${c.tone}`} onClick={onOpenClients}>
+            <button key={c.key} type="button" className={`today-chip tone-${c.tone}`} onClick={c.onClick || onOpenClients}>
               <strong>{c.value}</strong>
               <span>{c.label}</span>
             </button>

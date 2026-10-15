@@ -14,7 +14,13 @@ import BottomNav from "../components/BottomNav.jsx";
 import CommandPalette from "../components/CommandPalette.jsx";
 import ShortcutsModal from "../components/ShortcutsModal.jsx";
 import TodayStrip from "../components/TodayStrip.jsx";
-import { IconEdit, IconChart, IconUsers, IconQuote, IconSearch, IconHash, IconSun, IconUser, IconKeyboard } from "../components/icons.jsx";
+import Planner from "../components/Planner.jsx";
+import FocusPill from "../components/FocusPill.jsx";
+import useTasks from "../hooks/useTasks.js";
+import useFocusTimer from "../hooks/useFocusTimer.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { openTaskCount } from "../lib/tasks.js";
+import { IconEdit, IconChart, IconUsers, IconQuote, IconSearch, IconHash, IconSun, IconUser, IconKeyboard, IconCalendar, IconPlus, IconPlay } from "../components/icons.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { fillTemplate } from "../lib/templateVars.js";
@@ -26,6 +32,7 @@ const CLOSED = ["completed", "archived"];
 export default function Dashboard() {
   const { theme, toggle: toggleTheme } = useTheme();
   const { notify } = useToast();
+  const { user } = useAuth();
   const [view, setView] = useState("workspace");
 
   const [tabs, setTabs] = useState([]);
@@ -44,6 +51,7 @@ export default function Dashboard() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [plannerFocus, setPlannerFocus] = useState(0);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -53,6 +61,28 @@ export default function Dashboard() {
   const reportError = useCallback((msg) => setErrorBanner(msg), []);
 
   const activeTab = tabs.find((t) => t._id === activeTabId) || null;
+
+  const tasksApi = useTasks(reportError);
+  const taskCount = useMemo(() => openTaskCount(tasksApi.tasks), [tasksApi.tasks]);
+
+  const handleTimerComplete = useCallback(
+    (evt) => {
+      if (evt.kind === "focus") {
+        notify(`Focus session done. Take a ${evt.restMinutes}-minute break.`, { duration: 5000 });
+        if (evt.taskId) tasksApi.addFocusSession(evt.taskId);
+      } else {
+        notify("Break over. Ready for the next session?", { duration: 5000 });
+      }
+    },
+    [notify, tasksApi.addFocusSession]
+  );
+  const timer = useFocusTimer(user?.id || user?._id, handleTimerComplete);
+
+  const openPlanner = useCallback(() => setView("planner"), []);
+  const openNewTask = useCallback(() => {
+    setView("planner");
+    setPlannerFocus((n) => n + 1);
+  }, []);
 
   const loadTabs = useCallback(async () => {
     setTabsLoading(true);
@@ -281,11 +311,22 @@ export default function Dashboard() {
       if (e.key === "?" && !e.ctrlKey && !e.metaKey && !isTypingTarget(document.activeElement)) {
         e.preventDefault();
         setShortcutsOpen(true);
+        return;
+      }
+      // "N" = new task, unless the user is typing or a dialog is open.
+      if (
+        (e.key === "n" || e.key === "N") &&
+        !e.ctrlKey && !e.metaKey && !e.altKey &&
+        !isTypingTarget(document.activeElement) &&
+        !document.querySelector(".confirm-backdrop, .palette-backdrop")
+      ) {
+        e.preventDefault();
+        openNewTask();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [openNewTask]);
 
   const paletteItems = useMemo(() => {
     const go = (id, label, hint, Icon) => ({
@@ -299,6 +340,7 @@ export default function Dashboard() {
     const byUse = [...templates].sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
     return [
       go("workspace", "Workspace", "Write and sanitize", IconEdit),
+      go("planner", "Planner", "Tasks, focus timer, week view", IconCalendar),
       go("overview", "Overview", "Goals, stats, calculator", IconChart),
       go("clients", "Clients & orders", "Deadlines and follow-ups", IconUsers),
       go("templates", "Templates", "Quick replies", IconQuote),
@@ -324,6 +366,19 @@ export default function Dashboard() {
         icon: <IconQuote size={16} />,
         run: () => insertTemplateFromPalette(t)
       })),
+      { id: "act-task", group: "Actions", label: "Add a task", hint: "N", keywords: "todo new reminder", icon: <IconPlus size={16} />, run: openNewTask },
+      {
+        id: "act-focus",
+        group: "Actions",
+        label: timer.running ? "Pause the focus timer" : "Start a focus session",
+        keywords: "pomodoro timer focus break",
+        icon: <IconPlay size={16} />,
+        run: () => {
+          if (timer.running) timer.pause();
+          else timer.start();
+          setView("planner");
+        }
+      },
       {
         id: "act-theme",
         group: "Actions",
@@ -335,10 +390,11 @@ export default function Dashboard() {
       { id: "act-account", group: "Actions", label: "Account settings", icon: <IconUser size={16} />, run: () => setAccountOpen(true) },
       { id: "act-keys", group: "Actions", label: "Keyboard shortcuts", hint: "?", icon: <IconKeyboard size={16} />, run: () => setShortcutsOpen(true) }
     ];
-  }, [tabs, templates, theme, toggleTheme, insertTemplateFromPalette]);
+  }, [tabs, templates, theme, toggleTheme, insertTemplateFromPalette, openNewTask, timer]);
 
   const HEADINGS = {
     workspace: ["Workspace", activeTab?.name || ""],
+    planner: ["Planner", ""],
     overview: ["Overview", ""],
     clients: ["Clients", ""],
     templates: ["Templates", ""],
@@ -356,7 +412,7 @@ export default function Dashboard() {
     }
     return (
       <>
-        <TodayStrip clients={clients} onOpenClients={openClients} />
+        <TodayStrip clients={clients} tasks={tasksApi.tasks} onOpenClients={openClients} onOpenPlanner={openPlanner} />
 
         <Editor
           onSaveMessage={handleSaveMessage}
@@ -404,6 +460,7 @@ export default function Dashboard() {
         view={view}
         onChangeView={setView}
         followUpCount={followUpCount}
+        taskCount={taskCount}
         tabs={tabs}
         activeTabId={activeTabId}
         onSelectTab={setActiveTabId}
@@ -434,6 +491,16 @@ export default function Dashboard() {
           )}
 
           {view === "workspace" && renderWorkspace()}
+          {view === "planner" && (
+            <Planner
+              tasksApi={tasksApi}
+              clients={clients}
+              timer={timer}
+              onOpenClients={openClients}
+              focusInputSignal={plannerFocus}
+              onFocusHandled={() => setPlannerFocus(0)}
+            />
+          )}
           {view === "overview" && (
             <Overview refreshKey={refreshKey} onOpenClients={openClients} onError={reportError} />
           )}
@@ -445,7 +512,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <BottomNav view={view} onChangeView={setView} followUpCount={followUpCount} />
+      <BottomNav view={view} onChangeView={setView} followUpCount={followUpCount} taskCount={taskCount} />
+      {view !== "planner" && <FocusPill timer={timer} onOpen={openPlanner} />}
 
       {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}
