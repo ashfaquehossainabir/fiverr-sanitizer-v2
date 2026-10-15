@@ -4,11 +4,11 @@ import ConfirmModal from "./ConfirmModal.jsx";
 
 const VIEWS = [
   { id: "workspace", label: "Workspace", icon: "✎" },
-  { id: "planner", label: "Planner", icon: "✓" },
   { id: "overview", label: "Overview", icon: "▤" },
+  { id: "search", label: "Search", icon: "⌕" },
+  { id: "planner", label: "Planner", icon: "✓" },
   { id: "clients", label: "Clients", icon: "☺" },
-  { id: "templates", label: "Templates", icon: "❝" },
-  { id: "search", label: "Search", icon: "⌕" }
+  { id: "templates", label: "Templates", icon: "❝" }
 ];
 
 export default function Sidebar({
