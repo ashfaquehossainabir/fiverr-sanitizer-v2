@@ -6867,3 +6867,214 @@ kbd {
     flex: 1 1 120px;
   }
 }
+
+/* ==========================================================================
+   v9.7 — RESPONSIVE FIX: Today strip chips + client cards
+   Root cause: .today-chips is a grid inside the wrapping flex .today-strip but
+   had no width basis, so it collapsed to a single column (chips stacked
+   vertically) as soon as a client existed. This block is the single source of
+   truth for the strip and the Clients cards across desktop / laptop / tablet /
+   phone, and intentionally comes last so it wins over the earlier rules.
+   ========================================================================== */
+
+/* ---------- Today strip ---------- */
+.today-strip {
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px 28px;
+}
+
+.today-hello {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.today-chips {
+  flex: 2 1 460px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.today-chip {
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.today-chip span {
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* Laptops / small desktops: hello text on top, chips fill the full row */
+@media (max-width: 1280px) {
+  .today-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .today-hello,
+  .today-chips {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}
+
+/* Tablets (portrait): 3 + 2 layout, chips span evenly across the row */
+@media (max-width: 760px) {
+  .today-chips {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .today-chip {
+    grid-column: span 2;
+  }
+
+  .today-chip:nth-child(n + 4) {
+    grid-column: span 3;
+  }
+
+  .today-chip:last-child:nth-child(odd) {
+    grid-column: span 3;
+  }
+}
+
+/* Phones: tidy 2-column grid, last odd chip spans the full row */
+@media (max-width: 520px) {
+  .today-strip {
+    padding: 16px;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .today-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .today-chip,
+  .today-chip:nth-child(n + 4) {
+    grid-column: auto;
+    padding: 10px 12px;
+  }
+
+  .today-chip:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .today-chip strong {
+    font-size: 22px;
+  }
+}
+
+/* ---------- Overview stat cards ---------- */
+.stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 360px) {
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Clients: card grid + cards ---------- */
+.card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+
+@media (min-width: 1440px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.item-card {
+  min-width: 0;
+}
+
+.item-card header > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.item-card header .status-select {
+  flex: 0 0 auto;
+  max-width: 46%;
+}
+
+.item-card .meta-row {
+  gap: 6px;
+}
+
+.item-card .badge {
+  white-space: normal;
+  line-height: 1.5;
+}
+
+.client-clock {
+  min-width: 0;
+}
+
+.client-clock span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* footer: Remind group on the left, Edit/Delete on the right, wrapping cleanly */
+.item-card footer {
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+@media (max-width: 560px) {
+  .item-card {
+    padding: 14px;
+  }
+
+  .item-card footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .item-card footer .item-actions {
+    justify-content: flex-start;
+  }
+
+  .item-card footer .item-actions:last-child {
+    justify-content: flex-end;
+    padding-top: 6px;
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .item-actions-remind button {
+    min-height: 36px;
+  }
+}
+
+/* ---------- Panel header / toolbar on small screens ---------- */
+@media (max-width: 560px) {
+  .panel-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-head h2 {
+    font-size: 20px;
+  }
+}
