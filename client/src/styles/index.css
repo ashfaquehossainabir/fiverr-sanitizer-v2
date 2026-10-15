@@ -6877,99 +6877,6 @@ kbd {
    phone, and intentionally comes last so it wins over the earlier rules.
    ========================================================================== */
 
-/* ---------- Today strip ---------- */
-.today-strip {
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px 28px;
-}
-
-.today-hello {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-
-.today-chips {
-  flex: 2 1 460px;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.today-chip {
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.today-chip span {
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-
-/* Laptops / small desktops: hello text on top, chips fill the full row */
-@media (max-width: 1280px) {
-  .today-strip {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .today-hello,
-  .today-chips {
-    flex: 0 0 auto;
-    width: 100%;
-  }
-}
-
-/* Tablets (portrait): 3 + 2 layout, chips span evenly across the row */
-@media (max-width: 760px) {
-  .today-chips {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  .today-chip {
-    grid-column: span 2;
-  }
-
-  .today-chip:nth-child(n + 4) {
-    grid-column: span 3;
-  }
-
-  .today-chip:last-child:nth-child(odd) {
-    grid-column: span 3;
-  }
-}
-
-/* Phones: tidy 2-column grid, last odd chip spans the full row */
-@media (max-width: 520px) {
-  .today-strip {
-    padding: 16px;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
-
-  .today-chips {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .today-chip,
-  .today-chip:nth-child(n + 4) {
-    grid-column: auto;
-    padding: 10px 12px;
-  }
-
-  .today-chip:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-
-  .today-chip strong {
-    font-size: 22px;
-  }
-}
-
 /* ---------- Overview stat cards ---------- */
 .stat-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -7076,5 +6983,140 @@ kbd {
 
   .panel-head h2 {
     font-size: 20px;
+  }
+}
+
+
+/* ==========================================================================
+   v9.8 — TODAY STRIP (minimal). Single source of truth, keep last.
+   Desktop/laptop (>=1180): greeting left, compact chips right, one row.
+   Tablet (600-1179): greeting on top, chips share one evenly-split row.
+   Phone (<600): chips in a tidy 2-column grid.
+   ========================================================================== */
+.today-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 28px;
+  margin-bottom: 20px;
+  padding: 22px 26px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, var(--color-accent-soft) 0%, var(--color-surface) 62%);
+  box-shadow: none;
+}
+
+.today-hello {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.today-date {
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+}
+
+.today-hello h2 {
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 700;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.today-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.today-chips {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.today-chip {
+  flex: 0 0 auto;
+  min-width: 112px;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  box-shadow: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.today-chip:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--color-border-strong, var(--color-accent));
+  background: var(--color-surface);
+}
+
+.today-chip:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.today-chip strong {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.today-chip span {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Tablet + small laptop: stack, chips split the row evenly */
+@media (max-width: 1179px) {
+  .today-strip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .today-chips {
+    display: grid;
+    grid-template-columns: repeat(var(--chips, 4), minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .today-chip {
+    min-width: 0;
+  }
+}
+
+/* Phones: 2-column grid, a lone last chip spans the row */
+@media (max-width: 599px) {
+  .today-strip {
+    padding: 16px;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .today-chips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .today-chip,
+  .today-chip:nth-child(n + 4) {
+    grid-column: auto;
+    padding: 10px 12px;
+  }
+
+  .today-chip:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }

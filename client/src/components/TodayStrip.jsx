@@ -28,7 +28,8 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
   const attention = followUps + overdue + dueSoon + tasksDue;
 
   const chips = [
-    { key: "tasks", value: tasksDue, label: "Tasks due", tone: tasksDue ? "warn" : "calm", onClick: onOpenPlanner },
+    // Kept minimal: the tasks chip only appears when something is actually due.
+    ...(tasksDue > 0 ? [{ key: "tasks", value: tasksDue, label: "Tasks due", tone: "warn", onClick: onOpenPlanner }] : []),
     { key: "follow", value: followUps, label: "Follow-ups due", tone: followUps ? "warn" : "calm" },
     { key: "overdue", value: overdue, label: "Overdue", tone: overdue ? "danger" : "calm" },
     { key: "soon", value: dueSoon, label: "Due in 3 days", tone: dueSoon ? "warn" : "calm" },
@@ -52,7 +53,7 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
       </div>
 
       {(clients.length > 0 || tasks.length > 0) && (
-        <div className="today-chips">
+        <div className="today-chips" style={{ "--chips": chips.length }}>
           {chips.map((c) => (
             <button key={c.key} type="button" className={`today-chip tone-${c.tone}`} onClick={c.onClick || onOpenClients}>
               <strong>{c.value}</strong>
