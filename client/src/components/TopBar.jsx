@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import ThemeToggle from "./ThemeToggle.jsx";
-import { IconSearch, IconKeyboard } from "./icons.jsx";
+import { IconSearch, IconKeyboard, IconShield } from "./icons.jsx";
 import { MOD } from "../lib/platform.js";
 
 function getInitials(name) {
@@ -38,8 +38,9 @@ export default function TopBar({ title, subtitle, onMenuClick, onAvatarClick, on
 
       <div className="topbar-right">
         {isAdmin && (
-          <Link to="/admin" className="admin-pill-link" title="Admin Dashboard">
-            Admin
+          <Link to="/admin" className="admin-pill-link" title="Admin Dashboard" aria-label="Admin Dashboard">
+            <IconShield size={18} className="admin-pill-icon" />
+            <span className="admin-pill-text">Admin</span>
           </Link>
         )}
 
