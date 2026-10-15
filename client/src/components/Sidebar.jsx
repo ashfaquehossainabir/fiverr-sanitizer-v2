@@ -4,8 +4,8 @@ import ConfirmModal from "./ConfirmModal.jsx";
 
 const VIEWS = [
   { id: "workspace", label: "Workspace", icon: "✎" },
-  { id: "overview", label: "Overview", icon: "▤" },
   { id: "planner", label: "Planner", icon: "✓" },
+  { id: "overview", label: "Overview", icon: "▤" },
   { id: "clients", label: "Clients", icon: "☺" },
   { id: "templates", label: "Templates", icon: "❝" },
   { id: "search", label: "Search", icon: "⌕" }

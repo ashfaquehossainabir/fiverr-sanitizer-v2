@@ -27,8 +27,10 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
   const tasksDue = openTaskCount(tasks);
   const attention = followUps + overdue + dueSoon + tasksDue;
 
+  const status = overdue > 0 ? "danger" : attention > 0 ? "warn" : "calm";
+
   const chips = [
-    // Kept minimal: the tasks chip only appears when something is actually due.
+    // Only shown when a task is actually due; opens the Planner.
     ...(tasksDue > 0 ? [{ key: "tasks", value: tasksDue, label: "Tasks due", tone: "warn", onClick: onOpenPlanner }] : []),
     { key: "follow", value: followUps, label: "Follow-ups due", tone: followUps ? "warn" : "calm" },
     { key: "overdue", value: overdue, label: "Overdue", tone: overdue ? "danger" : "calm" },
@@ -37,6 +39,7 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
   ];
 
   return (
+    <div className="today-wrap">
     <section className="today-strip" aria-label="Today at a glance">
       <div className="today-hello">
         <p className="today-date">{today}</p>
@@ -44,6 +47,7 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
           {greeting()}, {first}
         </h2>
         <p className="today-sub">
+          <span className={`today-dot is-${status}`} aria-hidden="true" />
           {clients.length === 0 && tasks.length === 0
             ? "Add your first client or task to get reminders here."
             : attention === 0
@@ -63,5 +67,6 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
         </div>
       )}
     </section>
+    </div>
   );
 }
