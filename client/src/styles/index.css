@@ -7080,8 +7080,13 @@ kbd {
 .today-chip:hover {
   transform: none;
   box-shadow: none;
-  border-color: var(--color-border-strong, var(--color-accent));
+  border-color: var(--color-accent);
   background: var(--color-surface);
+}
+
+/* Dark theme: --color-accent is a bit muted on near-black, so use the brighter mint */
+:root[data-theme="dark"] .today-chip:hover {
+  border-color: var(--color-accent-dark);
 }
 
 .today-chip:focus-visible {
@@ -7107,6 +7112,20 @@ kbd {
 /* chips that need attention get a faint tinted outline */
 .today-chip.tone-warn   { border-color: color-mix(in srgb, var(--color-warn) 32%, var(--color-border)); }
 .today-chip.tone-danger { border-color: color-mix(in srgb, var(--color-danger) 38%, var(--color-border)); }
+
+/* hover always reads green, even on warn/danger chips (must come after the tone rules above) */
+.today-chip.tone-warn:hover,
+.today-chip.tone-danger:hover,
+.today-chip.tone-info:hover,
+.today-chip.tone-calm:hover {
+  border-color: var(--color-accent);
+}
+:root[data-theme="dark"] .today-chip.tone-warn:hover,
+:root[data-theme="dark"] .today-chip.tone-danger:hover,
+:root[data-theme="dark"] .today-chip.tone-info:hover,
+:root[data-theme="dark"] .today-chip.tone-calm:hover {
+  border-color: var(--color-accent-dark);
+}
 
 /* Desktop / wide laptop: one row */
 @container today (min-width: 900px) {
