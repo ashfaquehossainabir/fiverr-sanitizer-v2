@@ -2,10 +2,10 @@ import { IconEdit, IconChart, IconUsers, IconQuote, IconCalendar } from "./icons
 
 const ITEMS = [
   { id: "workspace", label: "Write", Icon: IconEdit },
-  { id: "planner", label: "Planner", Icon: IconCalendar },
+  { id: "overview", label: "Overview", Icon: IconChart },
   { id: "clients", label: "Clients", Icon: IconUsers },
-  { id: "templates", label: "Templates", Icon: IconQuote },
-  { id: "overview", label: "Overview", Icon: IconChart }
+  { id: "planner", label: "Planner", Icon: IconCalendar },
+  { id: "templates", label: "Templates", Icon: IconQuote }
 ];
 
 // Thumb-friendly navigation for phones and small tablets (hidden on desktop,
