@@ -7109,8 +7109,7 @@ kbd {
   overflow-wrap: anywhere;
 }
 
-/* chips that need attention get a faint tinted outline */
-.today-chip.tone-warn   { border-color: color-mix(in srgb, var(--color-warn) 32%, var(--color-border)); }
+/* only overdue (danger) chips get a faint tinted outline; warn chips keep the default border */
 .today-chip.tone-danger { border-color: color-mix(in srgb, var(--color-danger) 38%, var(--color-border)); }
 
 /* hover always reads green, even on warn/danger chips (must come after the tone rules above) */
@@ -7171,10 +7170,10 @@ kbd {
 }
 
 /* Mobile / tablet drawer: the bottom nav already covers the section links,
-   so the drawer shows only the tabs list. Desktop/laptop is unchanged. */
-   @media (max-width: 860px) {
-     .sidebar-menu-label,
-      .sidebar-views {
-        display: none;
-      }
-    }
+  so the drawer shows only the tabs list. Desktop/laptop is unchanged. */
+@media (max-width: 860px) {
+  .sidebar-menu-label,
+  .sidebar-views {
+    display: none;
+  }
+}
