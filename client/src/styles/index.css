@@ -1885,9 +1885,12 @@ textarea:focus {
   color: #fff;
 }
 
+/* Fixed dark green: --color-accent-dark turns light mint in dark mode, so it
+   can't be used as a hover background here. */
 .preview-actions .read-btn.speaking:hover:not(:disabled) {
-  background: var(--color-accent-dark);
-  border-color: var(--color-accent-dark);
+  background: #0A7C56;
+  border-color: #0A7C56;
+  color: #fff;
 }
 
 .stop-btn {
