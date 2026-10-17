@@ -1,4 +1,4 @@
-# Fiverr Message Sanitizer — Full-Stack Edition (Beta Version)
+# Fiverr Message Sanitizer — Full-Stack Edition
 
 A full-stack rebuild of the original React-only Fiverr Message Sanitizer.
 It now has real accounts, a MongoDB-backed workspace of user-created tabs,

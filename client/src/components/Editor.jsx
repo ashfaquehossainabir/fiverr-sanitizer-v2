@@ -11,6 +11,7 @@ import { MOD } from "../lib/platform.js";
 
 const URL_REGEX = /\bhttps?:\/\/[^\s]+/gi;
 const CHAR_LIMIT = 2500;
+const TALL_INPUT_THRESHOLD = 320;
 // Drafts are stored per account so a shared browser never shows one user's text to the next.
 const draftKeyFor = (user) => `sanitizer_draft_${user?.id || user?._id || "anon"}`;
 const SPEECH_SUPPORTED =
@@ -45,6 +46,8 @@ export default function Editor({
   const translateReq = useRef(0);
   const [translating, setTranslating] = useState(false);
   const textareaRef = useRef(null);
+  const previewRef = useRef(null);
+  const [previewHeight, setPreviewHeight] = useState(0);
   const lastInsertId = useRef(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -180,6 +183,23 @@ export default function Editor({
     ? sanitized.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const isLimitExceeded = charCount > CHAR_LIMIT;
+  const matchPreviewHeight = charCount > TALL_INPUT_THRESHOLD;
+
+  /* Past 320 characters the input's minimum height follows the sanitized
+     preview box so both columns stay the same size. */
+  useEffect(() => {
+    const node = previewRef.current;
+    if (!matchPreviewHeight || !node) {
+      setPreviewHeight(0);
+      return undefined;
+    }
+    const update = () => setPreviewHeight(Math.round(node.getBoundingClientRect().height));
+    update();
+    if (typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [matchPreviewHeight]);
   const limitPct = Math.min(100, Math.round((charCount / CHAR_LIMIT) * 100));
   const limitTone = isLimitExceeded ? "over" : limitPct >= 80 ? "near" : "ok";
   const selectedClientObj = clients.find((c) => c._id === selectedClient) || null;
@@ -449,6 +469,7 @@ export default function Editor({
           <textarea
             id="editor-input"
             ref={textareaRef}
+            style={matchPreviewHeight && previewHeight ? { minHeight: previewHeight } : undefined}
             placeholder="Type your Fiverr message here..."
             value={input}
             onChange={(e) => {
@@ -515,6 +536,7 @@ export default function Editor({
           </div>
 
           <div
+            ref={previewRef}
             className="preview-box"
             dangerouslySetInnerHTML={{
               __html: isTranslated
