@@ -5525,22 +5525,6 @@ kbd {
     min-height: 46px;
   }
 
-  /* template picker becomes a bottom sheet */
-  .tpl-pop {
-    position: fixed;
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 90;
-    width: auto;
-    max-height: 72vh;
-    max-height: 72dvh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-    animation: sheet-in 0.2s ease;
-  }
-
   .calc-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -7259,5 +7243,35 @@ kbd {
   .modal-backdrop {
     align-items: flex-start;
     overflow-y: auto;
+  }
+}
+
+/* ---------- Template picker: centered dialog on tablets and phones ---------- */
+@media (max-width: 860px) {
+  .tpl-pop {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    z-index: 90;
+    width: min(440px, calc(100vw - 32px));
+    height: fit-content;
+    max-height: min(560px, calc(100vh - 48px));
+    max-height: min(560px, calc(100dvh - 48px));
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    /* dims the page behind the dialog; tapping outside still closes it */
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45), var(--shadow-lg);
+    animation: tpl-center-in 0.18s ease;
+  }
+}
+
+@keyframes tpl-center-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
