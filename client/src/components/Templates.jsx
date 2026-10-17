@@ -4,6 +4,7 @@ import ConfirmModal from "./ConfirmModal.jsx";
 import Loader from "./Loader.jsx";
 import useEscape from "../hooks/useEscape.js";
 import { extractVariables, fillTemplate, STARTER_TEMPLATES } from "../lib/templateVars.js";
+import { formatCompact } from "../lib/formatNumber.js";
 
 const EMPTY = { title: "", category: "General", body: "" };
 
@@ -171,7 +172,7 @@ export default function Templates({ onUseTemplate, onError }) {
               </header>
               <p className="item-body">{t.body}</p>
               <footer>
-                <span className="muted">Used {t.usageCount}×</span>
+                <span className="muted">Used {formatCompact(t.usageCount)}×</span>
                 <div className="item-actions">
                   <button type="button" onClick={() => startUse(t)}>Use</button>
                   <button type="button" onClick={() => openEdit(t)}>Edit</button>

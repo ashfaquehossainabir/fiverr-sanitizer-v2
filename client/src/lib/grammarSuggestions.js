@@ -68,14 +68,12 @@ export function getGrammarSuggestions(text) {
     {
       test: /[a-zA-Z]\s*$/,
       message: "Sentence should end with punctuation.",
+      // Only lines that end in a letter or digit get a full stop. Lines ending in a comma,
+      // colon, quote or bracket ("Hi John,", "Best regards,") are left alone.
       fix: (t) =>
         t
           .split("\n")
-          .map((line) =>
-            line.trim() === "" || /[.!?]$/.test(line.trim())
-              ? line
-              : line + "."
-          )
+          .map((line) => (/[A-Za-z0-9]\s*$/.test(line) ? line.trimEnd() + "." : line))
           .join("\n"),
       type: "grammar"
     },
@@ -101,7 +99,9 @@ export function getGrammarSuggestions(text) {
       // Only touch the sentence that mentions "yesterday".
       fix: (t) =>
         t.replace(/[^.!?\n]*\byesterday\b[^.!?\n]*/gi, (sentence) =>
-          sentence.replace(/\bis\b/gi, "was").replace(/\bare\b/gi, "were")
+          sentence
+            .replace(/\bis\b/gi, (m) => (m[0] === "I" ? "Was" : "was"))
+            .replace(/\bare\b/gi, (m) => (m[0] === "A" ? "Were" : "were"))
         ),
       type: "grammar"
     },
@@ -122,7 +122,8 @@ export function getGrammarSuggestions(text) {
     {
       test: /[!?]{2,}/,
       message: "Avoid using multiple punctuation marks.",
-      fix: (t) => t.replace(/[!?]{2,}/g, "!"),
+      // Keep a question a question: "??" -> "?", "?!" -> "?", "!!" -> "!".
+      fix: (t) => t.replace(/[!?]{2,}/g, (run) => (run.includes("?") ? "?" : "!")),
       type: "grammar"
     },
 
@@ -205,7 +206,10 @@ export function getGrammarSuggestions(text) {
         type: "spelling",
         incorrect: wrong,
         message: `Spelling mistake: "${wrong}" → "${correct}"`,
-        fixedText: text.replace(regex, correct)
+        // Keep a leading capital: "Teh" -> "The", not "the".
+        fixedText: text.replace(regex, (m) =>
+          m[0] !== m[0].toLowerCase() ? correct.charAt(0).toUpperCase() + correct.slice(1) : correct
+        )
       });
     }
   });

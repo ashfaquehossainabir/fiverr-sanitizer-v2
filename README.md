@@ -94,6 +94,25 @@ New/changed API: `PUT /api/users/goal`; clients get `completedAt`; `/api/insight
 
 New/changed API: `GET/POST /api/tasks`, `PUT/DELETE /api/tasks/:id`, `DELETE /api/tasks/completed/all`; clients get a `timezone` field.
 
+## v12 — Bug-fix pass
+
+**Fixed**
+- Switching tabs quickly could show another tab's saved messages (an older response overwrote the newer one).
+- Copy / Save / Copy & Save could use text up to ~0.4s stale; the preview, counters, copy and save now always use the live text.
+- Sanitizer: `Review` / `Feedback` at the start of a sentence lost their capital (`check`); case is now preserved. Spelling fixes keep a leading capital too (`Teh` becomes `The`).
+- Overview: days, the 14-day chart and "earned this month" were bucketed in server (UTC) time, so work done after midnight local time counted for the wrong day/month. The browser now sends its UTC offset.
+- Search: the "Searching..." spinner could stay on forever after clearing the box; a blocked clipboard no longer throws.
+- Account dialog: Escape or a backdrop click on the log-out confirmation also closed the account dialog behind it. Admin "Reset password" now closes with Escape.
+- The **N** (new task) shortcut no longer fires behind the account dialog.
+- Planner: editing a task linked to a client that was since completed no longer shows "No client".
+- Sessions: a deactivated or un-approved account is signed out on its next request instead of seeing an error on every action; a network blip or server error on load no longer logs you out.
+- Server: malformed ids/dates return 400 instead of 500; non-text login/register/template fields are rejected; `CLIENT_ORIGIN` tolerates a trailing slash.
+- Removed dead email-verification code (`VerifyEmail.jsx`, `sendEmail.js`, `emailTemplates.js`): it imported `nodemailer`, which was never a dependency, and was not wired to any route.
+
+**Responsive**
+- Short screens no longer scroll for no reason on mobile browsers (`100dvh`); the top bar is tighter on very narrow phones (an admin's bar left almost no room for the title); dialogs scroll on short landscape phones.
+- The laptop-only (1025-1439px) hiding of the sidebar Search item is unchanged.
+
 ## Prerequisites
 
 - Node.js 18+
@@ -239,3 +258,23 @@ fiverr-sanitizer-fullstack/
   account cascades and deletes all of your tabs and saved messages.
 - The client-side sanitizing/grammar/translation logic is unchanged from
   the original app — only persistence, auth, and the UI shell are new.
+
+## Bug-fix pass
+
+**Server**
+- `.env` is now loaded before any route module runs. Previously "Sign in with Google" always answered *"isn't configured"* when `GOOGLE_CLIENT_ID` came from a `.env` file (it only worked when the host injected real environment variables).
+- The server refuses to start without `JWT_SECRET` instead of failing on the first login.
+- Google sign-in will not log a different Google identity into an account already linked to another one.
+- Unknown `/api/...` paths return 404 (they returned 401 for signed-out callers).
+- Wrong-type input (a number where text is expected, etc.) returns a 400 instead of crashing into a 500.
+- Template usage counts and the settings record are updated atomically.
+
+**Client**
+- Grammar "Apply" no longer produces `Hi John,.` / `Best regards,.`; `??` stays a question mark; `Is` keeps its capital when changed to `Was`.
+- Translating no longer shows a stale translation if the text changes (fix applied, template inserted, Clear, Undo) while it is loading.
+- A template placeholder that was never filled in (`{{client}}`) now shows a compliance warning, because the sanitizer strips the braces and it would be sent as the plain word "client".
+- `{{deadline}}` auto-fill no longer shows the day before for older records in time zones west of UTC.
+- A failed load of the Google sign-in script no longer disables the button until the page is reloaded.
+- Signing in after being sent to `/login` from another page (e.g. `/admin`) returns you there.
+- The loading splash no longer flashes light in dark mode.
+- `npm run lint` works (an `eslint.config.js` was missing).

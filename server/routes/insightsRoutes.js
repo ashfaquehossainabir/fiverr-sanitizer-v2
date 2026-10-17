@@ -7,15 +7,23 @@ import Task from "../models/Task.js";
 import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
-router.use(protect);
 
 const DAY = 24 * 60 * 60 * 1000;
 
 /* GET /api/insights - numbers for the dashboard overview */
-router.get("/insights", async (req, res, next) => {
+router.get("/insights", protect, async (req, res, next) => {
   try {
     const userId = req.user._id;
     const now = new Date();
+
+    // The browser sends its UTC offset (Date#getTimezoneOffset, minutes) so days and
+    // months are the user's own, not the server's. Without it a message saved at
+    // 2am in Dhaka counted toward the previous day and month.
+    const rawOffset = Number(req.query.tzOffset);
+    const tzOffset = Number.isFinite(rawOffset) && Math.abs(rawOffset) <= 14 * 60 ? rawOffset : 0;
+    const toLocalClock = (d) => new Date(d.getTime() - tzOffset * 60 * 1000);
+    const localDayKey = (d) => toLocalClock(d).toISOString().slice(0, 10);
+
     const weekAgo = new Date(now.getTime() - 7 * DAY);
     const fourteenAgo = new Date(now.getTime() - 14 * DAY);
 
@@ -33,10 +41,10 @@ router.get("/insights", async (req, res, next) => {
     const recent = await Message.find({ user: userId, createdAt: { $gte: fourteenAgo } }).select("createdAt");
     const perDay = {};
     for (let i = 13; i >= 0; i--) {
-      perDay[new Date(now.getTime() - i * DAY).toISOString().slice(0, 10)] = 0;
+      perDay[localDayKey(new Date(now.getTime() - i * DAY))] = 0;
     }
     recent.forEach((m) => {
-      const key = m.createdAt.toISOString().slice(0, 10);
+      const key = localDayKey(m.createdAt);
       if (key in perDay) perDay[key] += 1;
     });
 
@@ -47,7 +55,8 @@ router.get("/insights", async (req, res, next) => {
 
     // Orders completed this calendar month. Older completed orders that predate
     // the completedAt field fall back to their last-updated date.
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const localNow = toLocalClock(now);
+    const monthStart = new Date(Date.UTC(localNow.getUTCFullYear(), localNow.getUTCMonth(), 1) + tzOffset * 60 * 1000);
     const earnedThisMonth = completed
       .filter((c) => (c.completedAt || c.updatedAt) >= monthStart)
       .reduce((sum, c) => sum + (c.amount || 0), 0);
@@ -60,7 +69,8 @@ router.get("/insights", async (req, res, next) => {
     const dueFollowUps = clients
       .filter((c) => c.followUpAt && c.followUpAt <= new Date(now.getTime() + DAY) && !["completed", "archived"].includes(c.status))
       .sort((a, b) => a.followUpAt - b.followUpAt)
-      .slice(0, 8);
+      // The client keeps only those due today or earlier, so don't let tomorrow's crowd them out.
+      .slice(0, 25);
 
     const upcomingDeadlines = clients
       .filter((c) => c.deadline && c.deadline >= new Date(now.getTime() - DAY) && !["completed", "archived"].includes(c.status))
@@ -82,7 +92,7 @@ router.get("/insights", async (req, res, next) => {
 });
 
 /* GET /api/search?q=word - find a saved message across every tab */
-router.get("/search", async (req, res, next) => {
+router.get("/search", protect, async (req, res, next) => {
   try {
     const q = String(req.query.q || "").trim().slice(0, 80);
     if (q.length < 2) return res.json({ results: [] });
@@ -107,7 +117,7 @@ router.get("/search", async (req, res, next) => {
 });
 
 /* GET /api/export - full JSON backup of the user's own workspace */
-router.get("/export", async (req, res, next) => {
+router.get("/export", protect, async (req, res, next) => {
   try {
     const userId = req.user._id;
     const [tabs, messages, templates, clients, tasks] = await Promise.all([

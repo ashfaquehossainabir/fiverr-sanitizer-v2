@@ -147,7 +147,7 @@ router.put("/users/:id/reset-password", async (req, res, next) => {
   try {
     const { newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 6) {
+    if (typeof newPassword !== "string" || newPassword.length < 6) {
       return res.status(400).json({ message: "New password must be at least 6 characters." });
     }
 

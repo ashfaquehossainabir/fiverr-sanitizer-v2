@@ -48,7 +48,7 @@ router.get("/", async (req, res, next) => {
 /* POST /api/tabs - create a new tab */
 router.post("/", async (req, res, next) => {
   try {
-    const name = (req.body.name || "").trim();
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
     if (!name) {
       return res.status(400).json({ message: "Tab name is required." });
     }
@@ -67,7 +67,7 @@ router.put("/:id", async (req, res, next) => {
   try {
     const tab = await assertOwnedTab(req.params.id, req.user._id);
 
-    const name = (req.body.name || "").trim();
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
     if (!name) {
       return res.status(400).json({ message: "Tab name is required." });
     }
@@ -115,7 +115,7 @@ router.post("/:id/messages", async (req, res, next) => {
     await assertOwnedTab(req.params.id, req.user._id);
 
     const { sanitizedText, originalText, client } = req.body;
-    if (!sanitizedText || !sanitizedText.trim()) {
+    if (typeof sanitizedText !== "string" || !sanitizedText.trim()) {
       return res.status(400).json({ message: "There is no sanitized text to save." });
     }
     const clientId = await resolveClientId(client, req.user._id);
@@ -123,7 +123,7 @@ router.post("/:id/messages", async (req, res, next) => {
     const message = await Message.create({
       user: req.user._id,
       tab: req.params.id,
-      originalText: originalText || "",
+      originalText: typeof originalText === "string" ? originalText : "",
       sanitizedText,
       client: clientId
     });
@@ -144,7 +144,12 @@ router.put("/:id/messages/:messageId", async (req, res, next) => {
       return res.status(404).json({ message: "Saved message not found." });
     }
 
-    if (req.body.pinned !== undefined) message.pinned = Boolean(req.body.pinned);
+    if (req.body.pinned !== undefined) {
+      if (typeof req.body.pinned !== "boolean") {
+        return res.status(400).json({ message: "pinned must be true or false." });
+      }
+      message.pinned = req.body.pinned;
+    }
     if (req.body.client !== undefined) {
       message.client = await resolveClientId(req.body.client, req.user._id);
     }

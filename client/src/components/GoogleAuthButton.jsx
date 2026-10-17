@@ -27,8 +27,16 @@ function loadGoogleScript() {
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google Identity Services."));
+    script.onerror = () => {
+      script.remove(); // so a retry can add a fresh tag instead of waiting on a dead one
+      reject(new Error("Failed to load Google Identity Services."));
+    };
     document.head.appendChild(script);
+  });
+
+  // Forget a failed load so the next mount tries again instead of reusing the rejection.
+  scriptLoadPromise.catch(() => {
+    scriptLoadPromise = null;
   });
 
   return scriptLoadPromise;

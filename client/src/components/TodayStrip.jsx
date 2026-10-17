@@ -1,6 +1,7 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { daysUntil } from "../lib/dates.js";
 import { openTaskCount } from "../lib/tasks.js";
+import { formatCompact } from "../lib/formatNumber.js";
 
 const CLOSED = ["completed", "archived"];
 
@@ -60,7 +61,7 @@ export default function TodayStrip({ clients, tasks = [], onOpenClients, onOpenP
         <div className="today-chips" style={{ "--chips": chips.length }}>
           {chips.map((c) => (
             <button key={c.key} type="button" className={`today-chip tone-${c.tone}`} onClick={c.onClick || onOpenClients}>
-              <strong>{c.value}</strong>
+              <strong>{formatCompact(c.value)}</strong>
               <span>{c.label}</span>
             </button>
           ))}

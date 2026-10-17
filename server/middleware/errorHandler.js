@@ -12,6 +12,17 @@ export function errorHandler(err, req, res, next) {
     return res.status(400).json({ message });
   }
 
+  // A malformed id (e.g. /api/tabs/not-an-id) or an unparseable date used to
+  // surface as a 500; it is a bad request.
+  if (err.name === "CastError") {
+    return res.status(400).json({ message: `Invalid ${err.path || "value"}.` });
+  }
+
+  // express.json() rejects bad JSON bodies with a 400-level error.
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({ message: "Request body is not valid JSON." });
+  }
+
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || "field";
     return res.status(409).json({ message: `An account with this ${field} already exists.` });

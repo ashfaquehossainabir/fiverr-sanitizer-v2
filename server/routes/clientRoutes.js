@@ -42,7 +42,7 @@ router.get("/", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const data = pickFields(req.body);
-    if (!data.name?.trim()) return res.status(400).json({ message: "Client name is required." });
+    if (typeof data.name !== "string" || !data.name.trim()) return res.status(400).json({ message: "Client name is required." });
     if (data.status && !CLIENT_STATUSES.includes(data.status)) {
       return res.status(400).json({ message: "Invalid status." });
     }
@@ -64,7 +64,7 @@ router.put("/:id", async (req, res, next) => {
     if (data.status && !CLIENT_STATUSES.includes(data.status)) {
       return res.status(400).json({ message: "Invalid status." });
     }
-    if (data.name !== undefined && !String(data.name).trim()) {
+    if (data.name !== undefined && (typeof data.name !== "string" || !data.name.trim())) {
       return res.status(400).json({ message: "Client name is required." });
     }
     const wasCompleted = client.status === "completed";

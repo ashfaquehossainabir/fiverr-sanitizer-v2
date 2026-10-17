@@ -6,6 +6,7 @@ import ConfirmModal from "../components/ConfirmModal.jsx";
 import ResetPasswordModal from "../components/ResetPasswordModal.jsx";
 import Loader from "../components/Loader.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
+import { formatCompact } from "../lib/formatNumber.js";
 
 // How often the dashboard silently re-checks for new pending registrations.
 const POLL_INTERVAL_MS = 20000;
@@ -333,35 +334,35 @@ export default function AdminDashboard() {
           >
             <span className="admin-stat-icon">{STAT_ICONS.pending}</span>
             <span className="admin-stat-body">
-              <span className="admin-stat-value">{stats.pending}</span>
+              <span className="admin-stat-value">{formatCompact(stats.pending)}</span>
               <span className="admin-stat-label">Pending Approval</span>
             </span>
           </div>
           <div className="admin-stat-card" data-stat="total" tabIndex={0}>
             <span className="admin-stat-icon">{STAT_ICONS.total}</span>
             <span className="admin-stat-body">
-              <span className="admin-stat-value">{stats.total}</span>
+              <span className="admin-stat-value">{formatCompact(stats.total)}</span>
               <span className="admin-stat-label">Total Users</span>
             </span>
           </div>
           <div className="admin-stat-card" data-stat="active" tabIndex={0}>
             <span className="admin-stat-icon">{STAT_ICONS.active}</span>
             <span className="admin-stat-body">
-              <span className="admin-stat-value">{stats.active}</span>
+              <span className="admin-stat-value">{formatCompact(stats.active)}</span>
               <span className="admin-stat-label">Active</span>
             </span>
           </div>
           <div className="admin-stat-card" data-stat="deactivated" tabIndex={0}>
             <span className="admin-stat-icon">{STAT_ICONS.deactivated}</span>
             <span className="admin-stat-body">
-              <span className="admin-stat-value">{stats.deactivated}</span>
+              <span className="admin-stat-value">{formatCompact(stats.deactivated)}</span>
               <span className="admin-stat-label">Deactivated</span>
             </span>
           </div>
           <div className="admin-stat-card" data-stat="admins" tabIndex={0}>
             <span className="admin-stat-icon">{STAT_ICONS.admins}</span>
             <span className="admin-stat-body">
-              <span className="admin-stat-value">{stats.admins}</span>
+              <span className="admin-stat-value">{formatCompact(stats.admins)}</span>
               <span className="admin-stat-label">Admins</span>
             </span>
           </div>

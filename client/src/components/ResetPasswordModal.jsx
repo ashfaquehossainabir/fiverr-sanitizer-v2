@@ -1,10 +1,13 @@
 import { useState } from "react";
+import useEscape from "../hooks/useEscape.js";
 
 export default function ResetPasswordModal({ user, onConfirm, onCancel }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEscape(onCancel, !submitting);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

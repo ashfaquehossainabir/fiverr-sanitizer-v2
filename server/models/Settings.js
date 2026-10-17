@@ -24,12 +24,12 @@ const settingsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-settingsSchema.statics.getSettings = async function getSettings() {
-  let settings = await this.findOne({ key: "app_settings" });
-  if (!settings) {
-    settings = await this.create({ key: "app_settings" });
-  }
-  return settings;
+settingsSchema.statics.getSettings = function getSettings() {
+  return this.findOneAndUpdate(
+    { key: "app_settings" },
+    { $setOnInsert: { key: "app_settings" } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
 };
 
 export default mongoose.model("Settings", settingsSchema);

@@ -4,6 +4,7 @@ import ViewMessageModal from "./ViewMessageModal.jsx";
 import Loader from "./Loader.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { IconReuse, IconDownload } from "./icons.jsx";
+import { formatCompact } from "../lib/formatNumber.js";
 
 
 const iconProps = {
@@ -202,7 +203,7 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
             <footer className="sm-foot">
               <div className="sm-tags">
                 {clientName && <span className="badge badge-ok sm-client" title={clientName}>{clientName}</span>}
-                <span className="sm-words">{wordCount} {wordCount === 1 ? "word" : "words"}</span>
+                <span className="sm-words">{formatCompact(wordCount)} {wordCount === 1 ? "word" : "words"}</span>
               </div>
 
               <div className="sm-actions">

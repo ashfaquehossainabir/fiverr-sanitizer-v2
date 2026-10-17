@@ -32,14 +32,14 @@ router.get("/", async (req, res, next) => {
 router.post("/", async (req, res, next) => {
   try {
     const { title, body, category } = req.body;
-    if (!title?.trim() || !body?.trim()) {
+    if (typeof title !== "string" || typeof body !== "string" || !title.trim() || !body.trim()) {
       return res.status(400).json({ message: "Title and template text are required." });
     }
     const template = await Template.create({
       user: req.user._id,
       title: title.trim(),
       body,
-      category: category?.trim() || "General"
+      category: (typeof category === "string" && category.trim()) || "General"
     });
     res.status(201).json({ template });
   } catch (err) {
@@ -51,9 +51,9 @@ router.put("/:id", async (req, res, next) => {
   try {
     const t = await ownedTemplate(req.params.id, req.user._id);
     const { title, body, category } = req.body;
-    if (title !== undefined) t.title = title.trim();
-    if (body !== undefined) t.body = body;
-    if (category !== undefined) t.category = category.trim() || "General";
+    if (title !== undefined) t.title = String(title).trim();
+    if (body !== undefined) t.body = String(body);
+    if (category !== undefined) t.category = String(category).trim() || "General";
     if (!t.title || !t.body.trim()) {
       return res.status(400).json({ message: "Title and template text are required." });
     }
@@ -68,9 +68,8 @@ router.put("/:id", async (req, res, next) => {
 router.post("/:id/use", async (req, res, next) => {
   try {
     const t = await ownedTemplate(req.params.id, req.user._id);
-    t.usageCount += 1;
-    await t.save();
-    res.json({ template: t });
+    const updated = await Template.findByIdAndUpdate(t._id, { $inc: { usageCount: 1 } }, { new: true });
+    res.json({ template: updated });
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,5 @@
-import { RESERVED_KEYWORDS } from "../sanitizer.js"
+import { RESERVED_KEYWORDS } from "../sanitizer.js";
+import { extractVariables } from "../templateVars.js";
 
 export function getReservedWarnings(text) {
   if (!text) return [];
@@ -42,4 +43,14 @@ export function getPhoneWarnings(text) {
     });
   }
   return warnings;
+}
+
+// The sanitizer strips "{" and "}", so a template placeholder that was never filled in
+// (e.g. {{client}}) would be copied or saved as the plain word "client". Flag it.
+export function getPlaceholderWarnings(text) {
+  return extractVariables(text).map((name) => ({
+    keyword: name,
+    message: `The placeholder "{{${name}}}" is not filled in. The braces are removed, so it would be sent as the plain word "${name}".`,
+    type: "placeholder"
+  }));
 }

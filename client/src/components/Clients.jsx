@@ -7,6 +7,7 @@ import { daysUntil, fromInputDate, toInputDate } from "../lib/dates.js";
 import { ZONES, dayWord, localTimeInfo, zoneLabel } from "../lib/timezones.js";
 import useNow from "../hooks/useNow.js";
 import { IconGlobe } from "./icons.jsx";
+import { formatCompact } from "../lib/formatNumber.js";
 
 export const STATUSES = [
   { id: "lead", label: "Lead" },
@@ -180,7 +181,7 @@ export default function Clients({ onError, onChanged }) {
           <h2>Clients &amp; Orders</h2>
           <p className="panel-sub">
             Track every buyer, deadline and follow-up in one place so nothing slips.
-            {pipeline > 0 && <> Open pipeline: <strong>{pipeline.toLocaleString()}</strong>.</>}
+            {pipeline > 0 && <> Open pipeline: <strong>{formatCompact(pipeline)}</strong>.</>}
           </p>
         </div>
         <button type="button" className="btn-primary" onClick={openCreate}>+ Add Client</button>
@@ -232,7 +233,7 @@ export default function Clients({ onError, onChanged }) {
                 </header>
 
                 <div className="meta-row">
-                  {c.amount > 0 && <span className="badge">{c.currency} {c.amount.toLocaleString()}</span>}
+                  {c.amount > 0 && <span className="badge">{c.currency} {formatCompact(c.amount)}</span>}
                   {due && c.deadline && !["completed", "archived"].includes(c.status) && (
                     <span className={`badge badge-${due.tone}`}>Deadline {due.text}</span>
                   )}

@@ -3,6 +3,7 @@ import api from "../api/axios.js";
 import Loader from "./Loader.jsx";
 import { GoalCard, OfferCalculator } from "./EarningsTools.jsx";
 import { daysUntil, formatDay } from "../lib/dates.js";
+import { formatCompact } from "../lib/formatNumber.js";
 
 function Stat({ label, value, hint }) {
   return (
@@ -23,7 +24,8 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await api.get("/insights");
+        // Send our UTC offset so the server buckets days and the month in our timezone.
+        const res = await api.get("/insights", { params: { tzOffset: new Date().getTimezoneOffset() } });
         if (!cancelled) setData(res.data);
       } catch (err) {
         onError?.(err.response?.data?.message || "Could not load your overview.");
@@ -66,14 +68,14 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
       </div>
 
       <div className="stat-grid">
-        <Stat label="Messages saved" value={data.totals.messages} hint={`${data.totals.pinned} pinned`} />
+        <Stat label="Messages saved" value={formatCompact(data.totals.messages)} hint={`${formatCompact(data.totals.pinned)} pinned`} />
         <Stat
           label="This week"
-          value={data.week.thisWeek}
-          hint={delta === 0 ? "same as last week" : `${delta > 0 ? "+" : ""}${delta} vs last week`}
+          value={formatCompact(data.week.thisWeek)}
+          hint={delta === 0 ? "same as last week" : `${delta > 0 ? "+" : ""}${formatCompact(delta)} vs last week`}
         />
-        <Stat label="Open orders" value={data.pipeline.openCount} hint={`${data.pipeline.pipelineValue.toLocaleString()} in pipeline`} />
-        <Stat label="Completed value" value={data.pipeline.earned.toLocaleString()} hint="from completed orders" />
+        <Stat label="Open orders" value={formatCompact(data.pipeline.openCount)} hint={`${formatCompact(data.pipeline.pipelineValue)} in pipeline`} />
+        <Stat label="Completed value" value={formatCompact(data.pipeline.earned)} hint="from completed orders" />
       </div>
 
       <div className="overview-cols overview-tools">
@@ -140,7 +142,7 @@ export default function Overview({ refreshKey, onOpenClients, onError }) {
           ) : (
             <ul className="mini-list">
               {data.topTemplates.filter((t) => t.usageCount > 0).map((t) => (
-                <li key={t._id}><div><strong>{t.title}</strong><span>{t.usageCount} uses</span></div></li>
+                <li key={t._id}><div><strong>{t.title}</strong><span>{formatCompact(t.usageCount)} uses</span></div></li>
               ))}
             </ul>
           )}

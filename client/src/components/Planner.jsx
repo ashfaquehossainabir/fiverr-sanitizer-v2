@@ -124,6 +124,13 @@ function TaskRow({ task, clientName, clients, isFocus, onToggle, onUpdate, onDel
   const [draft, setDraft] = useState({ text: "", due: "", client: "", priority: "normal" });
   const due = dueLabel(task.dueDate);
 
+  // The task's own client may have been completed/archived since, so it is no longer in
+  // the open-clients list. Keep it selectable or the dropdown would claim "No client".
+  const clientOptions =
+    task.client && clientName && !clients.some((c) => c._id === task.client)
+      ? [...clients, { _id: task.client, name: clientName }]
+      : clients;
+
   const startEdit = () => {
     setDraft({ text: task.text, due: toInputDate(task.dueDate), client: task.client || "", priority: task.priority });
     setEditing(true);
@@ -146,7 +153,7 @@ function TaskRow({ task, clientName, clients, isFocus, onToggle, onUpdate, onDel
             <input type="date" value={draft.due} aria-label="Due date" onChange={(e) => setDraft({ ...draft, due: e.target.value })} />
             <select value={draft.client} aria-label="Client" onChange={(e) => setDraft({ ...draft, client: e.target.value })}>
               <option value="">No client</option>
-              {clients.map((c) => (
+              {clientOptions.map((c) => (
                 <option key={c._id} value={c._id}>
                   {c.name}
                 </option>

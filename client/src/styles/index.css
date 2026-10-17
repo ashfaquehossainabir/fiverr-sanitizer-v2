@@ -7196,3 +7196,68 @@ kbd {
     display: none;
   }
 }
+
+
+/* ==========================================================================
+   v11 — RESPONSIVE FIXES (append-only; nothing above is changed)
+   ========================================================================== */
+
+/* Mobile browsers: 100vh is taller than the visible area (the URL bar overlaps it),
+   which made short screens scroll for no reason. dvh tracks the visible viewport. */
+@supports (min-height: 100dvh) {
+  .dashboard-shell,
+  .admin-shell,
+  .auth-screen,
+  .app-loading-screen,
+  .loader-full {
+    min-height: 100dvh;
+  }
+}
+
+/* Very narrow phones: with the menu button, search icon, theme toggle, avatar and (for
+   admins) the shield icon, the page title had almost no room left. Tighten the bar. */
+@media (max-width: 420px) {
+  .topbar {
+    gap: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .topbar .menu-toggle,
+  .topbar .theme-toggle,
+  .topbar .topbar-search,
+  .topbar .admin-pill-link {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .topbar .admin-pill-link {
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .topbar .avatar-circle {
+    width: 34px;
+    height: 34px;
+  }
+
+  .topbar-title h1 {
+    font-size: 16px;
+  }
+}
+
+/* Dialogs on short landscape phones: let them scroll instead of clipping the buttons. */
+@media (max-height: 520px) {
+  .confirm-backdrop,
+  .modal-backdrop {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+}

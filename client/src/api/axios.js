@@ -26,7 +26,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const message = error.response?.data?.message || "";
-    if (error.response?.status === 401 && /not authorized/i.test(message) && localStorage.getItem("sanitizer_token")) {
+    const status = error.response?.status;
+    // 401 "Not authorized": expired/invalid token. 403 "deactivated"/"pending approval":
+    // an admin cut the account off - the session is unusable, so sign out instead of
+    // showing an error on every action.
+    const sessionDead =
+      (status === 401 && /not authorized/i.test(message)) ||
+      (status === 403 && /deactivated|pending admin approval/i.test(message));
+    if (sessionDead && localStorage.getItem("sanitizer_token")) {
       localStorage.removeItem("sanitizer_token");
       if (!window.location.pathname.startsWith("/login")) window.location.assign("/login");
     }

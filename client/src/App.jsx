@@ -11,6 +11,7 @@ import ThemeToggle from "./components/ThemeToggle.jsx";
 
 function PublicOnlyRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div className="app-loading-screen">
@@ -18,12 +19,13 @@ function PublicOnlyRoute({ children }) {
       </div>
     );
   }
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  // Send people back to the page that sent them to sign in (e.g. /admin), not always /dashboard.
+  if (isAuthenticated) return <Navigate to={location.state?.from?.pathname || "/dashboard"} replace />;
   return children;
 }
 
 // Pages that have their own header render the toggle there; everything else
-// (login, register, verify email) gets a floating one.
+// (login, register) gets a floating one.
 function FloatingThemeToggle() {
   const { pathname } = useLocation();
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) return null;

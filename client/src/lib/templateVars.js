@@ -1,3 +1,5 @@
+import { formatDay } from "./dates.js";
+
 // Templates use {{placeholder}} syntax, e.g. "Hi {{client}}, your {{project}} is ready."
 const VAR_REGEX = /\{\{\s*([a-zA-Z][\w ]{0,30}?)\s*\}\}/g;
 
@@ -18,8 +20,8 @@ export function fillTemplate(body, values) {
   });
 }
 
-const formatDeadline = (d) =>
-  d ? new Date(d).toLocaleDateString(undefined, { month: "long", day: "numeric" }) : "";
+// formatDay resolves the stored value to the calendar day the user picked in any timezone.
+const formatDeadline = (d) => formatDay(d, { month: "long", day: "numeric" });
 
 // Pre-fills well-known placeholders ({{client}}, {{project}}, {{deadline}}) from the
 // client the message is linked to, so most templates need zero typing.

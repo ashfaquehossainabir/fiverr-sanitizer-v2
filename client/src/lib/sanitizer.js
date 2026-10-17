@@ -84,6 +84,15 @@ function sanitizeWord(word, keyword) {
   return `${word[0]}_${word.slice(1)}`;
 }
 
+// Keep the original capitalisation: "Review" -> "Check", "REVIEW" -> "CHECK".
+function matchCase(original, replacement) {
+  if (original.length > 1 && original === original.toUpperCase()) return replacement.toUpperCase();
+  if (original[0] !== original[0].toLowerCase()) {
+    return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+  }
+  return replacement;
+}
+
 function formatPhoneNumber(phone) {
   return phone.split("").join("-");
 }
@@ -139,7 +148,7 @@ export function sanitizeText(text) {
   ================================ */
   Object.keys(REPLACEMENTS).forEach((key) => {
     const regex = new RegExp(`\\b${key}\\b`, "gi");
-    sanitized = sanitized.replace(regex, REPLACEMENTS[key]);
+    sanitized = sanitized.replace(regex, (match) => matchCase(match, REPLACEMENTS[key]));
   });
 
   /* ===============================

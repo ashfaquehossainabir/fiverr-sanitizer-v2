@@ -19,6 +19,10 @@ router.put("/profile", async (req, res, next) => {
       return res.status(400).json({ message: "Provide a name or email to update." });
     }
 
+    if ((name !== undefined && typeof name !== "string") || (email !== undefined && typeof email !== "string")) {
+      return res.status(400).json({ message: "Name and email must be text." });
+    }
+
     if (name && name.trim().length < 2) {
       return res.status(400).json({ message: "Name must be at least 2 characters." });
     }
@@ -71,7 +75,7 @@ router.put("/password", async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!newPassword) {
+    if (!newPassword || typeof newPassword !== "string") {
       return res.status(400).json({ message: "New password is required." });
     }
 
@@ -83,7 +87,7 @@ router.put("/password", async (req, res, next) => {
     const isSettingFirstPassword = !userWithPassword.password;
 
     if (!isSettingFirstPassword) {
-      if (!currentPassword) {
+      if (!currentPassword || typeof currentPassword !== "string") {
         return res.status(400).json({ message: "Current password is required." });
       }
       const isMatch = await userWithPassword.comparePassword(currentPassword);
@@ -117,7 +121,7 @@ router.delete("/account", async (req, res, next) => {
     const userWithPassword = await User.findById(req.user._id).select("+password");
 
     if (userWithPassword.password) {
-      if (!password) {
+      if (!password || typeof password !== "string") {
         return res.status(400).json({ message: "Enter your password to confirm account deletion." });
       }
       const isMatch = await userWithPassword.comparePassword(password);

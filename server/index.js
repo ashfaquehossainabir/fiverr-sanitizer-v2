@@ -1,6 +1,8 @@
+// Must be the first import: ES module imports are evaluated before the rest of this file,
+// so a later dotenv.config() call ran too late for modules that read process.env on load.
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -12,13 +14,17 @@ import taskRoutes from "./routes/taskRoutes.js";
 import insightsRoutes from "./routes/insightsRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
-dotenv.config();
+if (!process.env.JWT_SECRET) {
+  console.error("Missing JWT_SECRET in environment variables.");
+  process.exit(1);
+}
 
 const app = express();
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
   .split(",")
-  .map((origin) => origin.trim());
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
 
 app.use(
   cors({

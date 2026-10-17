@@ -7,7 +7,13 @@ import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
+// Created on first use so it sees GOOGLE_CLIENT_ID however the environment was loaded.
+let googleClient = null;
+function getGoogleClient() {
+  if (!process.env.GOOGLE_CLIENT_ID) return null;
+  if (!googleClient) googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  return googleClient;
+}
 
 /* POST /api/auth/register */
 router.post("/register", async (req, res, next) => {
@@ -16,6 +22,10 @@ router.post("/register", async (req, res, next) => {
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are all required." });
+    }
+
+    if ([name, email, password].some((v) => typeof v !== "string")) {
+      return res.status(400).json({ message: "Name, email and password must be text." });
     }
 
     if (password.length < 6) {
@@ -75,6 +85,10 @@ router.post("/login", async (req, res, next) => {
       return res.status(400).json({ message: "Email and password are required." });
     }
 
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ message: "Email and password must be text." });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() }).select("+password");
 
     if (!user || !(await user.comparePassword(password))) {
@@ -110,6 +124,7 @@ router.post("/login", async (req, res, next) => {
 */
 router.post("/google", async (req, res, next) => {
   try {
+    const googleClient = getGoogleClient();
     if (!googleClient) {
       return res.status(500).json({ message: "Google sign-in isn't configured on the server yet." });
     }
@@ -151,6 +166,12 @@ router.post("/google", async (req, res, next) => {
         user.googleId = payload.sub;
         await user.save();
       }
+    }
+
+    // The email belongs to an account already linked to a different Google identity.
+    // Never sign a different Google account into it.
+    if (user && user.googleId !== payload.sub) {
+      return res.status(409).json({ message: "This email is already linked to a different Google account." });
     }
 
     if (!user) {

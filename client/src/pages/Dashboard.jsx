@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../api/axios.js";
 import Sidebar from "../components/Sidebar.jsx";
 import TopBar from "../components/TopBar.jsx";
@@ -141,19 +141,27 @@ export default function Dashboard() {
     setRefreshKey((k) => k + 1);
   }, [loadClients]);
 
+  // Switching tabs quickly fires overlapping requests; only the newest one may
+  // write to state, otherwise a slow reply shows another tab's messages.
+  const messagesReq = useRef(0);
   const loadMessages = useCallback(async (tabId) => {
+    const requestId = ++messagesReq.current;
     if (!tabId) {
       setMessages([]);
+      setMessagesLoading(false);
       return;
     }
     setMessagesLoading(true);
     try {
       const { data } = await api.get(`/tabs/${tabId}/messages`);
-      setMessages(data.messages);
+      if (requestId === messagesReq.current) setMessages(data.messages);
     } catch (err) {
-      setErrorBanner(err.response?.data?.message || "Could not load saved messages.");
+      if (requestId === messagesReq.current) {
+        setMessages([]);
+        setErrorBanner(err.response?.data?.message || "Could not load saved messages.");
+      }
     } finally {
-      setMessagesLoading(false);
+      if (requestId === messagesReq.current) setMessagesLoading(false);
     }
   }, []);
 
@@ -318,7 +326,7 @@ export default function Dashboard() {
         (e.key === "n" || e.key === "N") &&
         !e.ctrlKey && !e.metaKey && !e.altKey &&
         !isTypingTarget(document.activeElement) &&
-        !document.querySelector(".confirm-backdrop, .palette-backdrop")
+        !document.querySelector(".confirm-backdrop, .palette-backdrop, .modal-backdrop, .view-message-backdrop")
       ) {
         e.preventDefault();
         openNewTask();

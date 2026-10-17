@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios.js";
 import Loader from "./Loader.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 const fmt = (d) =>
   new Date(d).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -11,11 +12,15 @@ export default function SearchView({ onOpenTab, onError, initialQuery = "" }) {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const { notify } = useToast();
 
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
+      // Clearing the box mid-request cancels it below, so reset the spinner here
+      // or "Searching..." would stay on screen forever.
       setResults(null);
+      setLoading(false);
       return undefined;
     }
     let cancelled = false;
@@ -37,7 +42,12 @@ export default function SearchView({ onOpenTab, onError, initialQuery = "" }) {
   }, [query, onError]);
 
   const copy = async (m) => {
-    await navigator.clipboard.writeText(m.sanitizedText);
+    try {
+      await navigator.clipboard.writeText(m.sanitizedText);
+    } catch {
+      notify("Copy failed. Open the tab and copy it manually.", { tone: "error", duration: 4000 });
+      return;
+    }
     setCopiedId(m._id);
     setTimeout(() => setCopiedId(null), 1500);
   };

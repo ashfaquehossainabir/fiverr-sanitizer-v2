@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeText } from "../lib/sanitizer.js";
 import { getGrammarSuggestions } from "../lib/grammarSuggestions.js";
-import { getPhoneWarnings, getReservedWarnings } from "../lib/utility/reservedWarnings.js";
+import { getPhoneWarnings, getPlaceholderWarnings, getReservedWarnings } from "../lib/utility/reservedWarnings.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { formatReadTime, getMessageStats, getToneChecks } from "../lib/messageStats.js";
 import { useToast } from "../context/ToastContext.jsx";
@@ -64,6 +64,15 @@ export default function Editor({
   const [copied, setCopied] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  /* Any change to the text must also cancel a translation that is still loading, or its
+     reply would land later and show the translation of the OLD text. */
+  const resetTranslation = () => {
+    translateReq.current += 1;
+    setTranslating(false);
+    setIsTranslated(false);
+    setTranslatedText("");
+  };
+
   /* -------------------- DEBOUNCE -------------------- */
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedInput(input), 400);
@@ -94,8 +103,7 @@ export default function Editor({
     setPreviousText(input.trim() ? input : null);
     setInput(loadedText.text);
     setDebouncedInput(loadedText.text);
-    setIsTranslated(false);
-    setTranslatedText("");
+    resetTranslation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadedText?.id]);
 
@@ -112,8 +120,7 @@ export default function Editor({
     const next = input.slice(0, start) + chunk + input.slice(end);
     setInput(next);
     setDebouncedInput(next);
-    setIsTranslated(false);
-    setTranslatedText("");
+    resetTranslation();
     const caret = start + chunk.length;
     requestAnimationFrame(() => {
       const node = textareaRef.current;
@@ -154,12 +161,18 @@ export default function Editor({
 
   const closePicker = useCallback(() => setPickerOpen(false), []);
 
-  const normalizedInput = debouncedInput.trimStart();
+  // Preview, counters, Copy and Save use the live text, so what is copied or saved
+  // is always what is on screen (the debounced copy lagged ~400ms behind typing).
+  // Only the heavier grammar / warning scans below wait for a typing pause.
+  const normalizedInput = input.trimStart();
   const hasRealText = normalizedInput.trim().length > 0;
+  const debouncedNormalized = debouncedInput.trimStart();
+  const debouncedHasText = debouncedNormalized.trim().length > 0;
 
-  const { text: sanitized, emailRemoved } = hasRealText
-    ? sanitizeText(normalizedInput)
-    : { text: "", emailRemoved: false };
+  const { text: sanitized, emailRemoved } = useMemo(
+    () => (hasRealText ? sanitizeText(normalizedInput) : { text: "", emailRemoved: false }),
+    [hasRealText, normalizedInput]
+  );
 
   const hasRealCharacter = /[a-zA-Z0-9]/.test(sanitized);
   const charCount = hasRealCharacter ? sanitized.length : 0;
@@ -176,21 +189,25 @@ export default function Editor({
   const toneChecks = hasRealCharacter ? getToneChecks(sanitized) : [];
 
   useEffect(() => {
-    if (!hasRealText) {
+    if (!debouncedHasText) {
       setGrammarSuggestions([]);
       return;
     }
-    setGrammarSuggestions(getGrammarSuggestions(normalizedInput));
-  }, [debouncedInput]);
+    setGrammarSuggestions(getGrammarSuggestions(debouncedNormalized));
+  }, [debouncedNormalized, debouncedHasText]);
 
   useEffect(() => {
-    if (!hasRealText) {
+    if (!debouncedHasText) {
       setReservedWarnings([]);
       return;
     }
-    const textWithoutUrls = normalizedInput.replace(URL_REGEX, "");
-    setReservedWarnings([...getReservedWarnings(textWithoutUrls), ...getPhoneWarnings(textWithoutUrls)]);
-  }, [debouncedInput]);
+    const textWithoutUrls = debouncedNormalized.replace(URL_REGEX, "");
+    setReservedWarnings([
+      ...getReservedWarnings(textWithoutUrls),
+      ...getPhoneWarnings(textWithoutUrls),
+      ...getPlaceholderWarnings(debouncedNormalized)
+    ]);
+  }, [debouncedNormalized, debouncedHasText]);
 
   /* Changing the text stops any reading in progress and resets the buttons. */
   useEffect(() => {
@@ -206,8 +223,7 @@ export default function Editor({
     setInput(fixedText);
     setDebouncedInput(fixedText);
     setGrammarSuggestions([]);
-    setIsTranslated(false);
-    setTranslatedText("");
+    resetTranslation();
   };
 
   const clearText = () => {
@@ -215,8 +231,7 @@ export default function Editor({
     setDebouncedInput("");
     setGrammarSuggestions([]);
     setReservedWarnings([]);
-    setIsTranslated(false);
-    setTranslatedText("");
+    resetTranslation();
   };
 
   const copyText = async () => {
@@ -423,6 +438,7 @@ export default function Editor({
                   setInput(previousText);
                   setDebouncedInput(previousText);
                   setPreviousText(null);
+                  resetTranslation();
                 }}
               >
                 Restore my previous text
@@ -437,10 +453,7 @@ export default function Editor({
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
-              setIsTranslated(false);
-              setTranslatedText("");
-              translateReq.current += 1;
-              setTranslating(false);
+              resetTranslation();
             }}
           />
 
