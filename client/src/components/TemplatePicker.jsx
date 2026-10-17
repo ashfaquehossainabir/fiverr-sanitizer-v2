@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import { autoFillValues, extractVariables, fillTemplate } from "../lib/templateVars.js";
 
 // Popover (bottom sheet on phones) that drops a saved quick-reply straight into
@@ -7,6 +8,7 @@ import { autoFillValues, extractVariables, fillTemplate } from "../lib/templateV
 // we can't know are asked for.
 export default function TemplatePicker({ templates, client, onInsert, onClose, onManage }) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query);
   const [filling, setFilling] = useState(null); // { template, values, missing }
   const searchRef = useRef(null);
 
@@ -25,10 +27,10 @@ export default function TemplatePicker({ templates, client, onInsert, onClose, o
   }, [onClose]);
 
   const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     const list = [...templates].sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0));
     return q ? list.filter((t) => `${t.title} ${t.category} ${t.body}`.toLowerCase().includes(q)) : list;
-  }, [templates, query]);
+  }, [templates, debouncedQuery]);
 
   const choose = (template) => {
     const vars = extractVariables(template.body);
@@ -97,7 +99,7 @@ export default function TemplatePicker({ templates, client, onInsert, onClose, o
           </button>
         </div>
       ) : visible.length === 0 ? (
-        <div className="tpl-empty"><p>No templates match “{query}”.</p></div>
+        <div className="tpl-empty"><p>No templates match “{debouncedQuery}”.</p></div>
       ) : (
         <ul className="tpl-list">
           {visible.map((t) => (

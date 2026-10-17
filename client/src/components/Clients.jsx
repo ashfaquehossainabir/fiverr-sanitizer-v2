@@ -6,6 +6,7 @@ import useEscape from "../hooks/useEscape.js";
 import { daysUntil, fromInputDate, toInputDate } from "../lib/dates.js";
 import { ZONES, dayWord, localTimeInfo, zoneLabel } from "../lib/timezones.js";
 import useNow from "../hooks/useNow.js";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import { IconGlobe } from "./icons.jsx";
 import { formatCompact } from "../lib/formatNumber.js";
 
@@ -51,6 +52,7 @@ export default function Clients({ onError, onChanged }) {
   const [editingId, setEditingId] = useState(null);
   const [filter, setFilter] = useState("open");
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query);
   const [sort, setSort] = useState("recent");
   const [pendingDelete, setPendingDelete] = useState(null);
   const now = useNow(30000);
@@ -154,7 +156,7 @@ export default function Clients({ onError, onChanged }) {
 
   if (loading) return <Loader label="Loading clients" />;
 
-  const q = query.trim().toLowerCase();
+  const q = debouncedQuery.trim().toLowerCase();
   const matchesQuery = (c) => !q || `${c.name} ${c.project} ${c.notes}`.toLowerCase().includes(q);
   const counts = { all: clients.length, open: clients.filter((c) => !CLOSED.includes(c.status)).length };
   STATUSES.forEach((st) => {

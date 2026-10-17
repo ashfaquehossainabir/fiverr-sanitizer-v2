@@ -3,6 +3,7 @@ import api from "../api/axios.js";
 import ConfirmModal from "./ConfirmModal.jsx";
 import Loader from "./Loader.jsx";
 import useEscape from "../hooks/useEscape.js";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 import { extractVariables, fillTemplate, STARTER_TEMPLATES } from "../lib/templateVars.js";
 import { formatCompact } from "../lib/formatNumber.js";
 
@@ -17,6 +18,7 @@ export default function Templates({ onUseTemplate, onError }) {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query);
   useEscape(() => {
     setForm(null);
     setFilling(null);
@@ -44,7 +46,7 @@ export default function Templates({ onUseTemplate, onError }) {
   const visible = templates.filter(
     (t) =>
       (category === "All" || t.category === category) &&
-      (!query.trim() || `${t.title} ${t.body}`.toLowerCase().includes(query.trim().toLowerCase()))
+      (!debouncedQuery.trim() || `${t.title} ${t.body}`.toLowerCase().includes(debouncedQuery.trim().toLowerCase()))
   );
 
   const openCreate = () => {

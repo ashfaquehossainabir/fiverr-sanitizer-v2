@@ -7,6 +7,7 @@ import ResetPasswordModal from "../components/ResetPasswordModal.jsx";
 import Loader from "../components/Loader.jsx";
 import ThemeToggle from "../components/ThemeToggle.jsx";
 import { formatCompact } from "../lib/formatNumber.js";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 
 // How often the dashboard silently re-checks for new pending registrations.
 const POLL_INTERVAL_MS = 20000;
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [banner, setBanner] = useState({ type: "", text: "" });
 
   const [statusPending, setStatusPending] = useState(null); // user pending activate/deactivate
@@ -179,11 +181,11 @@ export default function AdminDashboard() {
 
   const matchesSearch = useCallback(
     (u) => {
-      const q = search.trim().toLowerCase();
+      const q = debouncedSearch.trim().toLowerCase();
       if (!q) return true;
       return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
     },
-    [search]
+    [debouncedSearch]
   );
 
   const pendingUsers = useMemo(() => users.filter((u) => !u.isApproved), [users]);

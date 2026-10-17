@@ -5,6 +5,7 @@ import Loader from "./Loader.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { IconReuse, IconDownload } from "./icons.jsx";
 import { formatCompact } from "../lib/formatNumber.js";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 
 
 const iconProps = {
@@ -70,6 +71,7 @@ function formatDate(dateStr) {
 export default function SavedMessages({ messages, loading, onDelete, onTogglePin, onReuse, tabName = "", clientNames = {} }) {
   const { notify } = useToast();
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query);
   const [onlyPinned, setOnlyPinned] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [viewingMessage, setViewingMessage] = useState(null);
@@ -131,7 +133,7 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
     );
   }
 
-  const q = query.trim().toLowerCase();
+  const q = debouncedQuery.trim().toLowerCase();
   const pinnedCount = messages.filter((m) => m.pinned).length;
   const visible = messages.filter(
     (m) =>
@@ -170,7 +172,7 @@ export default function SavedMessages({ messages, loading, onDelete, onTogglePin
 
       {visible.length === 0 && (
         <div className="saved-messages-empty">
-          {onlyPinned && !q ? "No pinned messages in this tab." : <>No saved messages match “{query}”.</>}
+          {onlyPinned && !q ? "No pinned messages in this tab." : <>No saved messages match “{debouncedQuery}”.</>}
         </div>
       )}
 

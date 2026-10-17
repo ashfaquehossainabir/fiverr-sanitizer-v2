@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconSearch } from "./icons.jsx";
+import useDebouncedValue from "../hooks/useDebouncedValue.js";
 
 const PER_GROUP_IDLE = 6; // keep the idle list short; typing reveals everything
 
@@ -7,6 +8,8 @@ const PER_GROUP_IDLE = 6; // keep the idle list short; typing reveals everything
 // editor, or search every saved message without touching the mouse.
 export default function CommandPalette({ items, onClose, onSearch }) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, 150);
+  const pending = query !== debouncedQuery; // list is briefly stale while typing
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
   const listRef = useRef(null);
@@ -16,7 +19,7 @@ export default function CommandPalette({ items, onClose, onSearch }) {
   }, []);
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     let list;
     if (q) {
       list = items.filter((i) => `${i.label} ${i.keywords || ""} ${i.group}`.toLowerCase().includes(q));
@@ -33,18 +36,18 @@ export default function CommandPalette({ items, onClose, onSearch }) {
         {
           id: "search-saved",
           group: "Search",
-          label: `Search saved messages for “${query.trim()}”`,
+          label: `Search saved messages for “${debouncedQuery.trim()}”`,
           icon: <IconSearch size={16} />,
-          run: () => onSearch(query.trim())
+          run: () => onSearch(debouncedQuery.trim())
         }
       ];
     }
     return list;
-  }, [items, query, onSearch]);
+  }, [items, debouncedQuery, onSearch]);
 
   useEffect(() => {
     setActive(0);
-  }, [query]);
+  }, [debouncedQuery]);
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
@@ -65,6 +68,7 @@ export default function CommandPalette({ items, onClose, onSearch }) {
       setActive((i) => Math.max(0, i - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
+      if (pending) return; // don't run an item from a stale list
       run(results[active]);
     } else if (e.key === "Escape") {
       e.preventDefault();
@@ -103,7 +107,7 @@ export default function CommandPalette({ items, onClose, onSearch }) {
         </div>
 
         <ul className="palette-list" id="palette-list" role="listbox" ref={listRef}>
-          {results.length === 0 && <li className="palette-empty">Nothing matches “{query}”.</li>}
+          {results.length === 0 && <li className="palette-empty">Nothing matches “{debouncedQuery}”.</li>}
           {results.map((item, index) => {
             const header = item.group !== lastGroup ? item.group : null;
             lastGroup = item.group;
