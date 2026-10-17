@@ -54,6 +54,19 @@ const PHONE_REGEX = /\b\d{10,15}\b/g;
 
 const URL_REGEX = /\bhttps?:\/\/[^\s]+/gi;
 
+// Markdown-style links whose label AND target are both URLs:
+//   [https://x.com/](https://x.com/)  and  (https://x.com/)[https://x.com/]
+// Both collapse to a single plain URL (the one inside the parentheses).
+const LINK_URL = "https?:\\/\\/[^\\s\\[\\]()]+";
+const MD_LINK_REGEX = new RegExp(
+  `\\[\\s*${LINK_URL}\\s*\\]\\(\\s*(${LINK_URL})\\s*\\)`,
+  "gi"
+);
+const MD_LINK_REVERSED_REGEX = new RegExp(
+  `\\(\\s*(${LINK_URL})\\s*\\)\\[\\s*${LINK_URL}\\s*\\]`,
+  "gi"
+);
+
 /* ===============================
    HELPERS
 ================================ */
@@ -88,6 +101,13 @@ export function sanitizeText(text) {
 
   let sanitized = text;
   let emailRemoved = false;
+
+  /* ===============================
+     COLLAPSE URL-IN-URL MARKDOWN LINKS
+  ================================ */
+  sanitized = sanitized
+    .replace(MD_LINK_REGEX, (_m, url) => url)
+    .replace(MD_LINK_REVERSED_REGEX, (_m, url) => url);
 
   /* ===============================
      EXTRACT URLS
@@ -133,9 +153,9 @@ export function sanitizeText(text) {
   });
 
   /* ===============================
-     REMOVE UNSAFE SYMBOLS
+     REMOVE UNSAFE SYMBOLS (parentheses and double quotes are intentionally kept)
   ================================ */
-  sanitized = sanitized.replace(/[<>()[\]{}"`;]/g, "");
+  sanitized = sanitized.replace(/[<>[\]{}`;]/g, "");
 
   /* ===============================
      REMOVE DOUBLE ASTERISKS (markdown-style bold markers)

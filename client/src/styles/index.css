@@ -1877,10 +1877,17 @@ textarea:focus {
   cursor: not-allowed;
 }
 
-.read-btn.speaking {
+.read-btn.speaking,
+.preview-actions .read-btn.speaking:hover:not(:disabled),
+.preview-actions .read-btn.speaking:focus-visible {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: #fff;
+}
+
+.preview-actions .read-btn.speaking:hover:not(:disabled) {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
 }
 
 .stop-btn {
