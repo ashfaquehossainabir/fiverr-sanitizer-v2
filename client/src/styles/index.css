@@ -7187,3 +7187,12 @@ kbd {
     display: none;
   }
 }
+
+/* Laptops only (1025px-1439px): hide the Search item in the sidebar menu.
+   Search is still reachable from the top bar and Ctrl/Cmd+K. Mobile, tablet,
+   desktop (1440px+) and large desktop are unchanged. */
+@media (min-width: 1025px) and (max-width: 1439px) {
+  .sidebar-view-btn.sidebar-view-search {
+    display: none;
+  }
+}

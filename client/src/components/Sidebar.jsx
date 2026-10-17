@@ -114,7 +114,7 @@ export default function Sidebar({
             <button
               key={v.id}
               type="button"
-              className={`sidebar-view-btn ${view === v.id ? "active" : ""}`}
+              className={`sidebar-view-btn ${view === v.id ? "active" : ""} ${v.id === "search" ? "sidebar-view-search" : ""}`}
               onClick={() => {
                 onChangeView(v.id);
                 onClose();
