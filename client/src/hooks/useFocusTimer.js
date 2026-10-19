@@ -32,24 +32,53 @@ export function formatClock(ms) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function chime() {
+// One shared AudioContext. Browsers keep audio suspended until the user interacts with the
+// page, and a context created inside the timer callback (no gesture) stays silent, so we
+// unlock it on interaction and reuse it when the countdown ends.
+let audioCtx = null;
+
+function getAudioCtx() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    [0, 0.22].forEach((offset, i) => {
+    if (!Ctx) return null;
+    if (!audioCtx || audioCtx.state === "closed") audioCtx = new Ctx();
+    return audioCtx;
+  } catch {
+    return null;
+  }
+}
+
+function unlockAudio() {
+  const ctx = getAudioCtx();
+  if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+}
+
+if (typeof window !== "undefined") {
+  ["pointerdown", "keydown", "touchstart"].forEach((evt) => window.addEventListener(evt, unlockAudio, { passive: true }));
+}
+
+function chime() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  const play = () => {
+    // Rising three-note notification so it is clearly "time's up".
+    [659.25, 880, 1174.66].forEach((freq, i) => {
+      const t = ctx.currentTime + i * 0.2;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = i === 0 ? 660 : 880;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
-      gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + offset + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.35);
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(ctx.currentTime + offset);
-      osc.stop(ctx.currentTime + offset + 0.4);
+      osc.start(t);
+      osc.stop(t + 0.55);
     });
-    setTimeout(() => ctx.close?.(), 1000);
+  };
+  try {
+    if (ctx.state === "suspended") ctx.resume().then(play).catch(() => {});
+    else play();
   } catch {
     /* audio is a nicety */
   }
@@ -130,6 +159,7 @@ export default function useFocusTimer(userId, onComplete) {
   }, [state.running, state.mode, remainingMs]);
 
   const start = useCallback((taskId) => {
+    unlockAudio();
     const s = stateRef.current;
     const n = Date.now();
     setNow(n);
@@ -145,6 +175,7 @@ export default function useFocusTimer(userId, onComplete) {
   // "Focus on this task": retarget a running focus session, resume a paused one, or
   // start a fresh one (cutting a break short).
   const focusOn = useCallback((taskId) => {
+    unlockAudio();
     const s = stateRef.current;
     if (s.running && s.mode === "focus") {
       setState({ ...s, taskId });
