@@ -5400,7 +5400,9 @@ kbd {
     bottom: 0;
     z-index: 25;
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    /* one equal column per item, whatever the item count (was a fixed 6 columns, which left a gap) */
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: 2px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--color-surface) 94%, transparent);
@@ -7819,8 +7821,8 @@ kbd {
 .notes {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  max-width: 1180px;
+  gap: 20px;
+  max-width: 1240px;
   width: 100%;
 }
 
@@ -7842,15 +7844,17 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 14px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-ink-faint);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .notes-search:focus-within {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent);
 }
 
 .notes-search input {
@@ -7877,44 +7881,85 @@ kbd {
   cursor: default;
 }
 
+/* Composer: one card — writing area on top, a quiet footer with the shortcut hint and the action */
 .notes-composer {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  padding: 14px;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.notes-composer:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 16%, transparent), var(--shadow-sm);
 }
 
 .notes-composer textarea {
-  flex: 1;
-  min-width: 0;
-  resize: vertical;
-  min-height: 52px;
-  max-height: 220px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  display: block;
+  width: 100%;
+  min-height: 92px;
+  max-height: 260px;
+  padding: 16px 18px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--color-ink);
   font: inherit;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.notes-composer textarea::placeholder {
+  color: var(--color-ink-faint);
 }
 
 .notes-composer textarea:focus {
   outline: none;
-  border-color: var(--color-accent);
+}
+
+.notes-composer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 18px;
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-alt) 60%, var(--color-surface));
+}
+
+.notes-composer-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-ink-faint);
+}
+
+.notes-composer-hint kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.2;
 }
 
 .notes-composer .btn-primary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-shrink: 0;
-  min-height: 42px;
+  min-height: 40px;
+  margin-left: auto;
 }
 
 .notes-composer .btn-primary:disabled {
@@ -7922,56 +7967,91 @@ kbd {
   cursor: default;
 }
 
+/* Cards: equal-height rows, colour stripe on top, footer pinned to the bottom */
 .notes-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 14px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 16px;
+  align-items: stretch;
 }
 
 .note-card {
-  --note-tint: transparent;
+  --note-tint: var(--color-surface);
+  --note-stripe: var(--color-border-strong);
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 12px 10px;
+  gap: 10px;
+  min-width: 0;
+  padding: 20px 16px 12px;
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--note-tint) 11%, var(--color-surface));
+  background: color-mix(in srgb, var(--note-tint) 9%, var(--color-surface));
   box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.note-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--note-stripe);
 }
 
 .note-card:focus-within,
 .note-card:hover {
-  border-color: var(--color-border-strong);
+  border-color: color-mix(in srgb, var(--note-stripe) 55%, var(--color-border-strong));
   box-shadow: var(--shadow-md);
 }
 
-.note-card.note-green { --note-tint: var(--color-accent); }
-.note-card.note-blue { --note-tint: var(--color-info); }
-.note-card.note-amber { --note-tint: var(--color-warn); }
-.note-card.note-rose { --note-tint: var(--color-danger); }
+.note-card:hover {
+  transform: translateY(-2px);
+}
+
+.note-card.note-green { --note-tint: var(--color-accent); --note-stripe: var(--color-accent); }
+.note-card.note-blue { --note-tint: var(--color-info); --note-stripe: var(--color-info); }
+.note-card.note-amber { --note-tint: var(--color-warn); --note-stripe: var(--color-warn); }
+.note-card.note-rose { --note-tint: var(--color-danger); --note-stripe: var(--color-danger); }
 
 .note-card.is-pinned {
-  border-color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-border));
+}
+
+.note-pin-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-dark);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .note-card textarea {
+  flex: 1 1 auto;
   width: 100%;
-  min-height: 72px;
+  min-height: 84px;
   max-height: 420px;
-  padding: 2px;
+  padding: 0;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: var(--color-ink);
   font: inherit;
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 14.5px;
+  line-height: 1.6;
   resize: none;
   overflow-y: auto;
 }
@@ -7980,16 +8060,26 @@ kbd {
   outline: none;
 }
 
+.note-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-ink-faint);
+}
+
 .note-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--color-border-strong) 70%, transparent);
 }
 
 .note-colors {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 7px;
 }
 
 .note-dot {
@@ -8001,6 +8091,11 @@ kbd {
   background: var(--color-surface-alt);
   box-shadow: inset 0 0 0 1px var(--color-border-strong);
   cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.note-dot:hover {
+  transform: scale(1.12);
 }
 
 .note-dot.dot-green { background: var(--color-accent); box-shadow: none; }
@@ -8015,7 +8110,7 @@ kbd {
 
 .note-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .note-act {
@@ -8041,11 +8136,13 @@ kbd {
   border-color: var(--color-danger);
 }
 
-.note-meta {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-ink-faint);
+@media (prefers-reduced-motion: reduce) {
+  .note-card,
+  .note-card:hover,
+  .note-dot:hover {
+    transform: none;
+    transition: none;
+  }
 }
 
 /* ---------- Responsive ---------- */
@@ -8061,20 +8158,36 @@ kbd {
     width: 100%;
   }
 
-  .notes-composer {
-    flex-direction: column;
-    align-items: stretch;
+  .notes-composer-hint {
+    display: none;
+  }
+
+  .notes-composer-foot {
+    padding: 10px 12px;
   }
 
   .notes-composer .btn-primary {
-    justify-content: center;
+    flex: 1;
     min-height: 44px;
+  }
+
+  .notes-composer textarea {
+    min-height: 100px;
+    font-size: 16px; /* stops iOS zooming into the field */
+  }
+
+  .notes-grid {
+    gap: 14px;
   }
 }
 
 @media (max-width: 520px) {
   .notes-grid {
     grid-template-columns: 1fr;
+  }
+
+  .note-card textarea {
+    font-size: 16px;
   }
 
   .notes-export span {

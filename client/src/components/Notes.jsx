@@ -46,7 +46,15 @@ function NoteCard({ note, onChange, onDelete, onCopy }) {
 
   return (
     <li className={`note-card note-${note.color} ${note.pinned ? "is-pinned" : ""}`}>
+      {note.pinned && (
+        <span className="note-pin-tag">
+          <IconPin size={11} /> Pinned
+        </span>
+      )}
       <textarea ref={ref} value={note.text} onChange={(e) => onChange(note.id, { text: e.target.value })} aria-label="Note text" placeholder="Empty note" rows={3} maxLength={5000} />
+      <p className="note-meta">
+        {words(note.text)} word{words(note.text) === 1 ? "" : "s"} · {ago(note.updatedAt)}
+      </p>
       <div className="note-bar">
         <div className="note-colors" role="group" aria-label="Note colour">
           {COLORS.map((c) => (
@@ -65,9 +73,6 @@ function NoteCard({ note, onChange, onDelete, onCopy }) {
           </button>
         </div>
       </div>
-      <p className="note-meta">
-        {words(note.text)} word{words(note.text) === 1 ? "" : "s"} · {ago(note.updatedAt)}
-      </p>
     </li>
   );
 }
@@ -182,14 +187,19 @@ export default function Notes({ focusSignal, onFocusHandled }) {
               addNote();
             }
           }}
-          placeholder="Write a note… (Ctrl/Cmd + Enter to add)"
+          placeholder="Write a note…"
           aria-label="New note"
-          rows={2}
+          rows={3}
           maxLength={5000}
         />
-        <button type="submit" className="btn-primary" disabled={!draft.trim()}>
-          <IconPlus size={15} /> Add note
-        </button>
+        <div className="notes-composer-foot">
+          <span className="notes-composer-hint">
+            <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to add
+          </span>
+          <button type="submit" className="btn-primary" disabled={!draft.trim()}>
+            <IconPlus size={15} /> Add note
+          </button>
+        </div>
       </form>
 
       {notes.length === 0 ? (
