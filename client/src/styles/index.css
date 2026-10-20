@@ -5400,9 +5400,9 @@ kbd {
     bottom: 0;
     z-index: 25;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 2px;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--color-surface) 94%, transparent);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
@@ -7520,4 +7520,616 @@ kbd {
 
 :root[data-theme="dark"] .focus-pill.mode-break .focus-pill-dot {
   background: #4F7DE8;
+}
+
+/* ==========================================================================
+   v13.6: focus progress, daily routine and notes
+   ========================================================================== */
+
+/* The aside now holds several cards, so it scrolls with the page instead of sticking
+   (a sticky column taller than the screen would hide its lower cards). */
+.planner-aside {
+  position: static;
+}
+
+/* ---------- Focus progress ---------- */
+.stats-card .planner-card-head,
+.routine-card .planner-card-head {
+  margin-bottom: 12px;
+}
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.streak-badge.on {
+  background: var(--color-warn-soft);
+  color: var(--color-warn);
+}
+
+.goal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.goal-text strong {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.goal-done {
+  color: var(--color-accent-dark);
+  font-weight: 600;
+}
+
+.goal-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.goal-stepper button {
+  width: 30px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.goal-stepper button:hover:not(:disabled) {
+  background: var(--color-accent-soft);
+}
+
+.goal-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.goal-stepper span {
+  min-width: 22px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.goal-bar.is-done span {
+  background: var(--color-accent-dark);
+}
+
+.week-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.week-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.week-bar-val {
+  height: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-ink-faint);
+}
+
+.week-bar-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 28px;
+  height: 64px;
+  border-radius: 8px;
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+
+.week-bar-fill {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-accent) 55%, var(--color-surface-alt));
+  transition: height 0.3s ease;
+}
+
+.week-bar.is-today .week-bar-fill {
+  background: var(--color-accent);
+}
+
+.week-bar-day {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+}
+
+.week-bar.is-today .week-bar-day {
+  color: var(--color-accent-dark);
+}
+
+.stats-foot {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--color-ink-soft);
+  text-align: center;
+}
+
+.stats-foot strong {
+  color: var(--color-ink);
+}
+
+/* ---------- Daily routine ---------- */
+.routine-bar {
+  margin-bottom: 10px;
+}
+
+.routine-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.routine-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.routine-check {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.routine-check:hover {
+  background: var(--color-surface-alt);
+}
+
+.routine-box {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 6px;
+  color: #fff;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.routine-list li.is-done .routine-box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.routine-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.routine-list li.is-done .routine-text {
+  color: var(--color-ink-faint);
+  text-decoration: line-through;
+}
+
+.routine-del {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: var(--color-danger);
+}
+
+.routine-all {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-accent-dark);
+}
+
+.routine-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.routine-empty .planner-none {
+  margin: 0;
+}
+
+.routine-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.routine-add input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.routine-add input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.routine-add .icon-btn {
+  flex-shrink: 0;
+}
+
+.routine-add .icon-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- Notes ---------- */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1180px;
+  width: 100%;
+}
+
+.notes-head h2 {
+  margin: 0 0 4px;
+}
+
+.notes-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 380px;
+  min-width: 260px;
+}
+
+.notes-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-ink-faint);
+}
+
+.notes-search:focus-within {
+  border-color: var(--color-accent);
+}
+
+.notes-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+
+.notes-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.notes-export:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.notes-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.notes-composer textarea {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  min-height: 52px;
+  max-height: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notes-composer textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.notes-composer .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 42px;
+}
+
+.notes-composer .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.notes-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.note-card {
+  --note-tint: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--note-tint) 11%, var(--color-surface));
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note-card:focus-within,
+.note-card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.note-card.note-green { --note-tint: var(--color-accent); }
+.note-card.note-blue { --note-tint: var(--color-info); }
+.note-card.note-amber { --note-tint: var(--color-warn); }
+.note-card.note-rose { --note-tint: var(--color-danger); }
+
+.note-card.is-pinned {
+  border-color: var(--color-accent);
+}
+
+.note-card textarea {
+  width: 100%;
+  min-height: 72px;
+  max-height: 420px;
+  padding: 2px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: none;
+  overflow-y: auto;
+}
+
+.note-card textarea:focus {
+  outline: none;
+}
+
+.note-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.note-colors {
+  display: flex;
+  gap: 6px;
+}
+
+.note-dot {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  cursor: pointer;
+}
+
+.note-dot.dot-green { background: var(--color-accent); box-shadow: none; }
+.note-dot.dot-blue { background: var(--color-info); box-shadow: none; }
+.note-dot.dot-amber { background: var(--color-warn); box-shadow: none; }
+.note-dot.dot-rose { background: var(--color-danger); box-shadow: none; }
+
+.note-dot.on {
+  border-color: var(--color-surface);
+  outline: 2px solid var(--color-ink-soft);
+}
+
+.note-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.note-act {
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-ink-soft);
+}
+
+.note-act:hover {
+  background: var(--color-surface-alt);
+  border-color: var(--color-border-strong);
+}
+
+.note-act.on {
+  color: var(--color-accent-dark);
+  background: var(--color-accent-soft);
+}
+
+.note-act-danger:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.note-meta {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-ink-faint);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 760px) {
+  .planner-aside {
+    grid-template-columns: 1fr;
+  }
+
+  .notes-head .notes-tools {
+    flex-basis: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .notes-composer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notes-composer .btn-primary {
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  .notes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .notes-export span {
+    display: none;
+  }
+
+  .notes-export {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .notes-search input {
+    padding: 12px 0;
+  }
+}
+
+/* Touch screens: roomier targets for the small controls */
+@media (pointer: coarse) {
+  .note-dot {
+    width: 22px;
+    height: 22px;
+  }
+
+  .note-act {
+    width: 36px;
+    height: 36px;
+  }
+
+  .goal-stepper button {
+    width: 38px;
+    height: 36px;
+  }
+
+  .routine-check {
+    padding: 11px 6px;
+  }
+
+  .routine-del {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* Six bottom-nav items: tighten labels on narrow phones so none get clipped */
+@media (max-width: 860px) {
+  .bottom-nav-btn {
+    min-width: 0;
+    font-size: 10.5px;
+  }
+}
+
+@media (max-width: 380px) {
+  .bottom-nav-btn {
+    font-size: 9.5px;
+    padding-inline: 0;
+  }
 }

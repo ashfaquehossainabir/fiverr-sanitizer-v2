@@ -52,3 +52,4 @@ export const IconPlus = make(<><path d="M12 5v14M5 12h14" /></>);
 export const IconCalendar = make(<><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /><path d="m9 15 2 2 4-4" /></>);
 export const IconFlag = make(<><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></>);
 export const IconGlobe = make(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>);
+export const IconNote = make(<><path d="M5 3h14a2 2 0 0 1 2 2v9l-7 7H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M14 21v-5a2 2 0 0 1 2-2h5" /><path d="M7.5 8.5h9M7.5 12h5" /></>);

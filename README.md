@@ -113,6 +113,14 @@ New/changed API: `GET/POST /api/tasks`, `PUT/DELETE /api/tasks/:id`, `DELETE /ap
 - Short screens no longer scroll for no reason on mobile browsers (`100dvh`); the top bar is tighter on very narrow phones (an admin's bar left almost no room for the title); dialogs scroll on short landscape phones.
 - The laptop-only (1025-1439px) hiding of the sidebar Search item is unchanged.
 
+## v13.7: Focus modal, progress and notes
+
+- **Focus timer modal**: the floating timer pill opens a centred dialog (on desktop, tablet and phone) with the live timer and a *Go to Planner* button. Break time uses a darker blue ring and button in dark mode.
+- **Focus progress** (Planner): an adjustable daily session goal, a streak of focus days and a 7-day minutes chart, built from your finished sessions.
+- **Daily routine** (Planner): a checklist of habits you repeat every day. It resets each morning; *Add a starter routine* gives you five to begin with.
+- **Notes** (sidebar, phone bottom nav, command palette): quick colour-coded notes with search, pin, copy and a .txt export.
+- Focus history, routine and notes are stored in the browser per account (no API changes). The Planner side column no longer sticks, since it now holds several cards. The phone bottom nav has a sixth item (Notes).
+
 ## Prerequisites
 
 - Node.js 18+

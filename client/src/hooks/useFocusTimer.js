@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { addSession, loadLog, logKey } from "../lib/focusLog.js";
 
 export const PRESETS = [
   { id: "quick", label: "15 / 3", focus: 15, rest: 3 },
@@ -93,6 +94,7 @@ export default function useFocusTimer(userId, onComplete) {
   const storageKey = `sanitizer_focus_${userId || "anon"}`;
   const [state, setState] = useState(() => load(storageKey));
   const [now, setNow] = useState(() => Date.now());
+  const [log, setLog] = useState(() => loadLog(userId));
   const stateRef = useRef(state);
   stateRef.current = state;
   const completeRef = useRef(onComplete);
@@ -105,6 +107,14 @@ export default function useFocusTimer(userId, onComplete) {
       /* storage can be unavailable (private mode) */
     }
   }, [state, storageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(logKey(userId), JSON.stringify(log));
+    } catch {
+      /* storage can be unavailable (private mode) */
+    }
+  }, [log, userId]);
 
   const finish = useCallback(() => {
     const s = stateRef.current;
@@ -123,6 +133,7 @@ export default function useFocusTimer(userId, onComplete) {
         endsAt: Date.now() + p.rest * 60000,
         remainingMs: null
       });
+      setLog((prev) => addSession(prev, p.focus));
       completeRef.current?.({ kind: "focus", taskId: s.taskId, minutes: p.focus, restMinutes: p.rest });
     } else {
       setState({ ...s, mode: "focus", running: false, endsAt: null, remainingMs: null });
@@ -216,6 +227,7 @@ export default function useFocusTimer(userId, onComplete) {
       progress: totalMs ? 1 - remainingMs / totalMs : 0,
       sessionsToday: today ? state.sessions : 0,
       minutesToday: today ? state.minutes : 0,
+      log,
       start,
       focusOn,
       pause,
@@ -223,6 +235,6 @@ export default function useFocusTimer(userId, onComplete) {
       setPreset,
       setTask
     }),
-    [state, remainingMs, totalMs, today, start, focusOn, pause, reset, setPreset, setTask]
+    [state, log, remainingMs, totalMs, today, start, focusOn, pause, reset, setPreset, setTask]
   );
 }

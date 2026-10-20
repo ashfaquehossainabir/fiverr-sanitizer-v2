@@ -4,6 +4,8 @@ import { daysUntil, formatDay, fromInputDate, toInputDate } from "../lib/dates.j
 import { IconCheck, IconClock, IconEdit, IconFlag, IconPlay, IconPlus, IconTrash } from "./icons.jsx";
 import Loader from "./Loader.jsx";
 import FocusCard from "./FocusCard.jsx";
+import FocusStats from "./FocusStats.jsx";
+import DailyRoutine from "./DailyRoutine.jsx";
 
 const PRIORITIES = [
   { id: "low", label: "Low" },
@@ -400,6 +402,8 @@ export default function Planner({ tasksApi, clients, timer, onOpenClients, focus
 
         <aside className="planner-aside">
           <FocusCard timer={timer} openTasks={openTasks} />
+          <FocusStats timer={timer} />
+          <DailyRoutine />
 
           <section className="planner-card radar-card" aria-label="Client radar">
             <div className="planner-card-head">

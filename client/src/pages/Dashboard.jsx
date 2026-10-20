@@ -15,13 +15,14 @@ import CommandPalette from "../components/CommandPalette.jsx";
 import ShortcutsModal from "../components/ShortcutsModal.jsx";
 import TodayStrip from "../components/TodayStrip.jsx";
 import Planner from "../components/Planner.jsx";
+import Notes from "../components/Notes.jsx";
 import FocusPill from "../components/FocusPill.jsx";
 import FocusTimerModal from "../components/FocusTimerModal.jsx";
 import useTasks from "../hooks/useTasks.js";
 import useFocusTimer from "../hooks/useFocusTimer.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { openTaskCount } from "../lib/tasks.js";
-import { IconEdit, IconChart, IconUsers, IconQuote, IconSearch, IconHash, IconSun, IconUser, IconKeyboard, IconCalendar, IconPlus, IconPlay } from "../components/icons.jsx";
+import { IconEdit, IconChart, IconUsers, IconQuote, IconSearch, IconHash, IconSun, IconUser, IconKeyboard, IconCalendar, IconPlus, IconPlay, IconNote } from "../components/icons.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { fillTemplate } from "../lib/templateVars.js";
@@ -54,6 +55,7 @@ export default function Dashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [plannerFocus, setPlannerFocus] = useState(0);
   const [timerOpen, setTimerOpen] = useState(false);
+  const [notesFocus, setNotesFocus] = useState(0);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -83,6 +85,10 @@ export default function Dashboard() {
   const openPlanner = useCallback(() => {
     setTimerOpen(false);
     setView("planner");
+  }, []);
+  const openNewNote = useCallback(() => {
+    setView("notes");
+    setNotesFocus((n) => n + 1);
   }, []);
   const openTimer = useCallback(() => setTimerOpen(true), []);
   const closeTimer = useCallback(() => setTimerOpen(false), []);
@@ -363,6 +369,7 @@ export default function Dashboard() {
       go("overview", "Overview", "Goals, stats, calculator", IconChart),
       go("clients", "Clients & orders", "Deadlines and follow-ups", IconUsers),
       go("templates", "Templates", "Quick replies", IconQuote),
+      go("notes", "Notes", "Scratchpad for buyer details and ideas", IconNote),
       go("search", "Search saved messages", "Across every tab", IconSearch),
       ...tabs.map((t) => ({
         id: `tab-${t._id}`,
@@ -385,6 +392,7 @@ export default function Dashboard() {
         icon: <IconQuote size={16} />,
         run: () => insertTemplateFromPalette(t)
       })),
+      { id: "act-note", group: "Actions", label: "New note", keywords: "scratchpad jot write", icon: <IconPlus size={16} />, run: openNewNote },
       { id: "act-task", group: "Actions", label: "Add a task", hint: "N", keywords: "todo new reminder", icon: <IconPlus size={16} />, run: openNewTask },
       {
         id: "act-focus",
@@ -409,7 +417,7 @@ export default function Dashboard() {
       { id: "act-account", group: "Actions", label: "Account settings", icon: <IconUser size={16} />, run: () => setAccountOpen(true) },
       { id: "act-keys", group: "Actions", label: "Keyboard shortcuts", hint: "?", icon: <IconKeyboard size={16} />, run: () => setShortcutsOpen(true) }
     ];
-  }, [tabs, templates, theme, toggleTheme, insertTemplateFromPalette, openNewTask, timer]);
+  }, [tabs, templates, theme, toggleTheme, insertTemplateFromPalette, openNewTask, openNewNote, timer]);
 
   const HEADINGS = {
     workspace: ["Workspace", activeTab?.name || ""],
@@ -417,6 +425,7 @@ export default function Dashboard() {
     overview: ["Overview", ""],
     clients: ["Clients", ""],
     templates: ["Templates", ""],
+    notes: ["Notes", ""],
     search: ["Search", ""]
   };
   const [title, subtitle] = HEADINGS[view];
@@ -525,6 +534,7 @@ export default function Dashboard() {
           )}
           {view === "clients" && <Clients onError={reportError} onChanged={handleClientsChanged} />}
           {view === "templates" && <Templates onUseTemplate={handleUseTemplate} onError={reportError} />}
+          {view === "notes" && <Notes focusSignal={notesFocus} onFocusHandled={() => setNotesFocus(0)} />}
           {view === "search" && (
             <SearchView key={searchSeed.id} initialQuery={searchSeed.q} onOpenTab={openTabFromSearch} onError={reportError} />
           )}

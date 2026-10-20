@@ -8,7 +8,8 @@ const VIEWS = [
   { id: "planner", label: "Planner", icon: "✓" },
   { id: "clients", label: "Clients", icon: "☺" },
   { id: "templates", label: "Templates", icon: "❝" },
-  { id: "search", label: "Search", icon: "⌕" }
+  { id: "notes", label: "Notes", icon: "✐" },
+  // { id: "search", label: "Search", icon: "⌕" }
 ];
 
 export default function Sidebar({
