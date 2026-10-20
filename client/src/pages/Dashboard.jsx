@@ -16,6 +16,7 @@ import ShortcutsModal from "../components/ShortcutsModal.jsx";
 import TodayStrip from "../components/TodayStrip.jsx";
 import Planner from "../components/Planner.jsx";
 import FocusPill from "../components/FocusPill.jsx";
+import FocusTimerModal from "../components/FocusTimerModal.jsx";
 import useTasks from "../hooks/useTasks.js";
 import useFocusTimer from "../hooks/useFocusTimer.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -52,6 +53,7 @@ export default function Dashboard() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [plannerFocus, setPlannerFocus] = useState(0);
+  const [timerOpen, setTimerOpen] = useState(false);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -78,7 +80,16 @@ export default function Dashboard() {
   );
   const timer = useFocusTimer(user?.id || user?._id, handleTimerComplete);
 
-  const openPlanner = useCallback(() => setView("planner"), []);
+  const openPlanner = useCallback(() => {
+    setTimerOpen(false);
+    setView("planner");
+  }, []);
+  const openTimer = useCallback(() => setTimerOpen(true), []);
+  const closeTimer = useCallback(() => setTimerOpen(false), []);
+  // The modal only makes sense away from the Planner, so never leave it armed there.
+  useEffect(() => {
+    if (view === "planner") setTimerOpen(false);
+  }, [view]);
   const openNewTask = useCallback(() => {
     setView("planner");
     setPlannerFocus((n) => n + 1);
@@ -521,7 +532,10 @@ export default function Dashboard() {
       </div>
 
       <BottomNav view={view} onChangeView={setView} followUpCount={followUpCount} taskCount={taskCount} />
-      {view !== "planner" && <FocusPill timer={timer} onOpen={openPlanner} />}
+      {view !== "planner" && <FocusPill timer={timer} onOpen={openTimer} />}
+      {timerOpen && view !== "planner" && (
+        <FocusTimerModal timer={timer} tasks={tasksApi.tasks} onClose={closeTimer} onOpenPlanner={openPlanner} />
+      )}
 
       {accountOpen && <AccountModal onClose={() => setAccountOpen(false)} />}
       {shortcutsOpen && <ShortcutsModal onClose={() => setShortcutsOpen(false)} />}

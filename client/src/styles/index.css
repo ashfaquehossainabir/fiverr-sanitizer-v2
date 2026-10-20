@@ -7275,3 +7275,249 @@ kbd {
     transform: none;
   }
 }
+
+/* ==========================================================================
+   Focus timer modal (opens from the floating focus pill)
+   Desktop / laptop: centred dialog · tablet: slightly wider, larger ring
+   Mobile: bottom sheet · short landscape screens: two-column layout
+   ========================================================================== */
+
+.focus-modal-backdrop {
+  z-index: 210; /* above the floating pill and bottom nav */
+}
+
+.modal.focus-modal {
+  max-width: 420px;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 22px 22px;
+}
+
+.focus-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.focus-modal-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--color-ink);
+}
+
+/* The card chrome comes from the modal itself. */
+.focus-card-modal {
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.focus-card-modal .planner-card-head {
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.focus-card-modal .focus-ring {
+  width: min(200px, 56vw, 34dvh);
+  min-width: 132px;
+  margin: 8px auto 18px;
+}
+
+.focus-card-modal .focus-ring-text strong {
+  font-size: clamp(28px, 8vw, 38px);
+}
+
+.focus-card-modal .focus-main,
+.focus-modal-planner {
+  min-height: 44px;
+}
+
+.focus-modal-planner {
+  width: 100%;
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.focus-modal-planner span {
+  flex: 0 1 auto;
+}
+
+.focus-card-modal .icon-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.modal-x {
+  flex-shrink: 0;
+}
+
+/* Large desktop */
+@media (min-width: 1440px) {
+  .modal.focus-modal {
+    max-width: 460px;
+    padding: 24px 26px 26px;
+  }
+
+  .focus-card-modal .focus-ring {
+    width: min(224px, 34dvh);
+  }
+}
+
+/* Tablet (portrait and landscape): comfortable touch targets, bigger ring */
+@media (min-width: 521px) and (max-width: 1024px) {
+  .modal.focus-modal {
+    max-width: 440px;
+  }
+
+  .focus-card-modal .focus-ring {
+    width: min(216px, 34dvh);
+  }
+
+  .focus-modal-planner {
+    min-height: 48px;
+  }
+}
+
+/* Touch screens: bigger tap targets everywhere */
+@media (pointer: coarse) {
+  .focus-modal .modal-x {
+    width: 40px;
+    height: 40px;
+  }
+
+  .focus-card-modal .planner-seg button {
+    min-height: 38px;
+    padding-inline: 14px;
+  }
+}
+
+/* Phones: centred dialog (both axes) with a small gutter, safe-area aware */
+@media (max-width: 520px) {
+  .focus-modal-backdrop {
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .modal.focus-modal {
+    max-width: 400px;
+    margin: auto;
+    padding: 18px 18px 20px;
+  }
+
+  .focus-card-modal .planner-seg {
+    width: 100%;
+  }
+
+  .focus-card-modal .planner-seg button {
+    flex: 1;
+  }
+
+  .focus-card-modal .focus-ring {
+    margin-bottom: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal.focus-modal {
+    animation: none;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .modal.focus-modal {
+    padding-inline: 14px;
+  }
+
+  .focus-card-modal .focus-ring {
+    width: min(160px, 52vw, 30dvh);
+  }
+}
+
+/* Short landscape screens (phones/tablets on their side): ring on the left, controls on the right */
+@media (max-height: 520px) and (orientation: landscape) {
+  .focus-modal-backdrop {
+    align-items: center;
+    padding: 8px 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .modal.focus-modal {
+    max-width: 640px;
+    padding: 12px 18px 14px;
+    animation: none;
+  }
+
+  .focus-modal-head {
+    margin-bottom: 6px;
+  }
+
+  .focus-card-modal .focus-body {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 6px 22px;
+  }
+
+  .focus-card-modal .focus-ring {
+    width: min(150px, 46dvh);
+    min-width: 110px;
+    margin: 0;
+  }
+
+  .focus-card-modal .focus-ring-text strong {
+    font-size: 26px;
+  }
+
+  .focus-card-modal .focus-task {
+    margin-bottom: 10px;
+  }
+
+  .focus-card-modal .focus-stats {
+    margin-top: 10px;
+  }
+
+  .focus-modal-planner {
+    margin-top: 10px;
+  }
+}
+
+/* Dark mode: the break-time blue (#7BA3FF) is too pale for a filled button with white text and a
+   thick ring, so the focus timer uses a deeper blue for those. Text-only info colours are unchanged. */
+:root[data-theme="dark"] .focus-card.mode-break {
+  --ring: #3F68C9;
+}
+
+:root[data-theme="dark"] .focus-card.mode-break .focus-main,
+:root[data-theme="dark"] .focus-card.mode-break .focus-main:hover {
+  background: #3A62C0;
+  border-color: #3A62C0;
+}
+
+:root[data-theme="dark"] .focus-card.mode-break .focus-main:hover {
+  background: #3158B2;
+  border-color: #3158B2;
+  filter: none;
+}
+
+:root[data-theme="dark"] .focus-card.mode-break .focus-ring-text span {
+  color: #8FB0FF; /* label stays readable on the dark surface */
+}
+
+:root[data-theme="dark"] .focus-pill.mode-break .focus-pill-dot {
+  background: #4F7DE8;
+}
